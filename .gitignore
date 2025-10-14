@@ -1,0 +1,38 @@
+# ===================================================
+# ### Lớp Build & IDE của Spring Boot (Backend) ###
+# ===================================================
+
+/target/
+
+/.mvn/
+/mvnw
+/mvnw.cmd
+
+*.log
+
+.idea/
+*.iml
+*.iws
+.classpath
+.project
+.settings/
+
+# =============================================
+# ### Lớp Build & IDE của React (Frontend) ###
+# =============================================
+
+/duli-social-frontend/node_modules/
+
+/duli-social-frontend/build/
+
+/duli-social-frontend/.pnp.*
+/duli-social-frontend/.npm
+.npm
+.node_gyp
+
+/duli-social-frontend/npm-debug.log*
+/duli-social-frontend/yarn-debug.log*
+/duli-social-frontend/yarn-error.log*
+
+/duli-social-frontend/.env*.local
+/duli-social-frontend/.env
