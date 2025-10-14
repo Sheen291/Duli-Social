@@ -1,38 +1,64 @@
-# ===================================================
-# ### Lớp Build & IDE của Spring Boot (Backend) ###
-# ===================================================
-
-/target/
-
-/.mvn/
-/mvnw
-/mvnw.cmd
-
-*.log
+=============================================
+### QUY TẮC CHUNG & CẤU HÌNH IDE
+=============================================
 
 .idea/
-*.iml
 *.iws
+*.iml
+*.ipr
+
+.vscode/*
+!.vscode/extensions.json
+
+.apt_generated
 .classpath
+.factorypath
 .project
-.settings/
+.settings
+.springBeans
+.sts4-cache
 
-# =============================================
-# ### Lớp Build & IDE của React (Frontend) ###
-# =============================================
+.DS_Store
 
+*.suo
+.ntvs
+*.njsproj
+*.sln
+*.sw?
+
+===================================================
+### LỚP BUILD & LOGS CỦA SPRING BOOT (BACKEND)
+===================================================
+/duli-social/HELP.md
+/duli-social/target/
+/duli-social/.mvn/
+
+/duli-social/nbproject/private/
+/duli-social/nbbuild/
+/duli-social/dist/
+/duli-social/nbdist/
+/duli-social/.nb-gradle/
+/duli-social/build/
+
+!/src/main//target/
+!/src/test//target/
+!/src/main//build/
+!/src/test//build/
+
+=============================================
+### LỚP BUILD & LOGS CỦA REACT (FRONTEND)
+=============================================
 /duli-social-frontend/node_modules/
 
-/duli-social-frontend/build/
+/duli-social-frontend/dist/
+/duli-social-frontend/dist-ssr/
 
-/duli-social-frontend/.pnp.*
-/duli-social-frontend/.npm
-.npm
-.node_gyp
+/duli-social-frontend/*.local
 
-/duli-social-frontend/npm-debug.log*
+/duli-social-frontend/logs
+/duli-social-frontend/.log
+/duli-social-frontend/npm-debug.log
 /duli-social-frontend/yarn-debug.log*
 /duli-social-frontend/yarn-error.log*
-
-/duli-social-frontend/.env*.local
-/duli-social-frontend/.env
+/duli-social-frontend/pnpm-debug.log*
+/duli-social-frontend/lerna-debug.log*
