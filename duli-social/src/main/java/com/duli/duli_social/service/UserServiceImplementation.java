@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.duli.duli_social.config.JwtProvider;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.UserRepository;
 
@@ -49,19 +50,26 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public User followUser(Integer userId1, Integer userId2) throws Exception {
+    public User followUser(Integer requestUserId, Integer acceptUserId) throws Exception {
 
-        User user1 = findUserById(userId1);
+        User requestUser = findUserById(requestUserId);
 
-        User user2 = findUserById(userId2);
+        User acceptUser = findUserById(acceptUserId);
 
-        user2.getFollowers().add(user1.getId());
-        user1.getFollowings().add(user2.getId());
+        if (acceptUser.getFollowers().contains(requestUser.getId())) {
+            acceptUser.getFollowers().remove((Integer) requestUser.getId());
+            requestUser.getFollowings().remove((Integer) acceptUser.getId());
+            System.out.println("User unfollowed.");
+        } else {
+            acceptUser.getFollowers().add(requestUser.getId());
+            requestUser.getFollowings().add(acceptUser.getId());
+            System.out.println("User followed.");
+        }
 
-        userRepository.save(user1);
-        userRepository.save(user2);
+        userRepository.save(requestUser);
+        userRepository.save(acceptUser);
 
-        return user1;
+        return requestUser;
     }
 
     @Override
@@ -87,6 +95,9 @@ public class UserServiceImplementation implements UserService {
         if(user.getPassword()!=null) {
             oldUser.setPassword(user.getPassword());
         }
+        if(user.getGender()!=null) {
+            oldUser.setGender(user.getGender());
+        }
         
         User updatedUser=userRepository.save(oldUser);
         
@@ -97,6 +108,15 @@ public class UserServiceImplementation implements UserService {
     public List<User> searchUser(String query) {
         
         return userRepository.searchUser(query);
+    }
+
+    @Override
+    public User findUserByToken(String jwt) {
+        
+        String email = JwtProvider.getEmailFromJwtToken(jwt);
+        User user = userRepository.findByEmail(email);
+
+        return user;
     }
     
 }

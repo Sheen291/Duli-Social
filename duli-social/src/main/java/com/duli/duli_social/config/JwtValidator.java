@@ -22,7 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtValidator extends OncePerRequestFilter{
 
     
-
+    //dùng để check token
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -41,7 +41,7 @@ public class JwtValidator extends OncePerRequestFilter{
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                         
                     } catch (Exception e) {
-                        throw new BadCredentialsException("invalid token");
+                        throw new BadCredentialsException("incorrect token");
                     }
                 }
                 

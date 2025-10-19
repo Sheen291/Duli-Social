@@ -18,4 +18,6 @@ public interface UserService {
     //search theo ten....
     public List<User> searchUser(String query);
 
+    public User findUserByToken(String jwt);
+
 }

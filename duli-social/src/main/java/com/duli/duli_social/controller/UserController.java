@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.duli.duli_social.config.JwtProvider;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.UserRepository;
 import com.duli.duli_social.service.UserService;
@@ -42,20 +44,21 @@ public class UserController {
         return user; 
     }
 
-    
-
-    @PutMapping("/api/users/{userId}")
-    public User updateUser(@RequestBody User user, @PathVariable Integer userId) throws Exception {
+    @PutMapping("/api/users")
+    public User updateUser(@RequestHeader("Authorization")String jwt, @RequestBody User user) throws Exception {
         
-        User updatedUser = userService.updateUser(user, userId);
+        User findUser =  userService.findUserByToken(jwt);
+        User updatedUser = userService.updateUser(user, findUser.getId());
         return updatedUser;
     }
     
-    @PutMapping("/api/users/follow/{userId1}/{userId2}")
-    public User followUser(@PathVariable Integer userId1, @PathVariable Integer userId2) throws Exception {
+    @PutMapping("/api/users/follow/{acceptUserId}")
+    public User followUser(@RequestHeader("Authorization")String jwt, @PathVariable Integer acceptUserId) throws Exception {
 
-        User user=userService.followUser(userId1, userId2);
-        return user;
+        User requestUser = userService.findUserByToken(jwt);
+
+        User acceptUser=userService.followUser(requestUser.getId(), acceptUserId);
+        return acceptUser;
     }
 
     @GetMapping("/api/users/search")
@@ -63,5 +66,14 @@ public class UserController {
         
         List<User> users=userService.searchUser(query);
         return users;
+    }
+
+    @GetMapping("/api/users/profile")
+    public User getUserByToken(@RequestHeader("Authorization")String jwt) {
+        
+        User user = userService.findUserByToken(jwt);
+        user.setPassword(null); //che password
+        
+        return user;
     }
 }
