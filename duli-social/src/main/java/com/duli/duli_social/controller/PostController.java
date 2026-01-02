@@ -1,26 +1,18 @@
 package com.duli.duli_social.controller;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import com.duli.duli_social.dto.PostDto;
 import com.duli.duli_social.models.Post;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.response.APIResponse;
 import com.duli.duli_social.service.PostService;
 import com.duli.duli_social.service.UserService;
 
-//@RestController để báo cho spring biết class này dùng để viết api, tiếp nhận request từ client các method sẽ trả về json cho client
 @RestController
 public class PostController {
 
@@ -31,60 +23,55 @@ public class PostController {
     UserService userService;
 
     @PostMapping("/api/posts")
-    public ResponseEntity<Post> createPost(@RequestHeader("Authorization")String jwt, @RequestBody Post post) throws Exception {
-        User user = userService.findUserByToken(jwt);
+    public ResponseEntity<Post> createPost(@RequestHeader("Authorization") String jwt, @RequestBody Post post) throws Exception {
+        User user = userService.findUserByJwt(jwt);
         Post createdPost = postService.createPost(post, user.getId());
-        return new ResponseEntity<>(createdPost,HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
     }
 
     @DeleteMapping("/api/posts/{postId}")
-    public ResponseEntity<APIResponse> deletePost(@RequestHeader("Authorization")String jwt, @PathVariable Integer postId) throws Exception {
-        User user = userService.findUserByToken(jwt);
-        String message=postService.deletePost(postId, user.getId());
-        APIResponse res=new APIResponse(message, true);
-
-        return new ResponseEntity<APIResponse>(res, HttpStatus.OK);
+    public ResponseEntity<APIResponse> deletePost(@RequestHeader("Authorization") String jwt, @PathVariable Long postId) throws Exception {
+        User user = userService.findUserByJwt(jwt);
+        String message = postService.deletePost(postId, user.getId());
+        return new ResponseEntity<>(new APIResponse(message, true), HttpStatus.OK);
     }
 
-    @GetMapping("/posts/{postId}")
-    public ResponseEntity<Post> findPostById(@PathVariable Integer postId) throws Exception{
-
-        Post post=postService.findPostById(postId);
-        return new ResponseEntity<Post>(post,HttpStatus.ACCEPTED);
+    @GetMapping("/api/posts/{postId}")
+    public ResponseEntity<PostDto> findPostById(@PathVariable Long postId) throws Exception {
+        PostDto post = postService.findPostById(postId);
+        return new ResponseEntity<>(post, HttpStatus.OK);
     }
 
-    @GetMapping("/posts/user/{userId}")
-    public ResponseEntity<List<Post>> findUsersPost(@PathVariable Integer userId) throws Exception{
-
-        List<Post> listOfPosts=postService.findPostByUserId(userId);
-
-        return new ResponseEntity<List<Post>>(listOfPosts,HttpStatus.OK);
-
+    @GetMapping("/api/posts/user/{userId}")
+    public ResponseEntity<Page<PostDto>> findUsersPost(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) throws Exception {
+        Page<PostDto> posts = postService.findPostByUserId(userId, page, size);
+        return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
-    @GetMapping("/posts")
-    public ResponseEntity<List<Post>> findAllPosts() {
-        
-        List<Post> listOfAllPosts=postService.findAllPost();
-        return new ResponseEntity<List<Post>>(listOfAllPosts,HttpStatus.OK);
+    @GetMapping("/api/posts")
+    public ResponseEntity<Page<PostDto>> findAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<PostDto> posts = postService.findAllPost(page, size);
+        return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
     @PutMapping("/api/posts/saved/{postId}")
-    public ResponseEntity<Post> savePost(@RequestHeader("Authorization")String jwt, @PathVariable Integer postId) throws Exception {
-        
-        User user = userService.findUserByToken(jwt);
-        
-        Post savedPost=postService.savePost(postId, user.getId());
-        return new ResponseEntity<Post>(savedPost,HttpStatus.ACCEPTED);
+    public ResponseEntity<PostDto> savePost(@RequestHeader("Authorization") String jwt, @PathVariable Long postId) throws Exception {
+        User user = userService.findUserByJwt(jwt);
+        PostDto savedPost = postService.savePost(postId, user.getId());
+        return new ResponseEntity<>(savedPost, HttpStatus.OK);
     }
 
     @PutMapping("/api/posts/like/{postId}")
-    public ResponseEntity<Post> likePost(@RequestHeader("Authorization")String jwt, @PathVariable Integer postId) throws Exception {
-        
-        User user = userService.findUserByToken(jwt);
-
-        Post likedPost=postService.likePost(postId, user.getId());
-        return new ResponseEntity<Post>(likedPost,HttpStatus.ACCEPTED);
+    public ResponseEntity<PostDto> likePost(@RequestHeader("Authorization") String jwt, @PathVariable Long postId) throws Exception {
+        User user = userService.findUserByJwt(jwt);
+        PostDto likedPost = postService.likePost(postId, user.getId());
+        return new ResponseEntity<>(likedPost, HttpStatus.OK);
     }
 }
-

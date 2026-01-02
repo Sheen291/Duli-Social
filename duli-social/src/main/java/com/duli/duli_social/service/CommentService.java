@@ -1,14 +1,15 @@
 package com.duli.duli_social.service;
 
-import java.util.Optional;
-
+import com.duli.duli_social.dto.CommentDto;
 import com.duli.duli_social.models.Comment;
 
 public interface CommentService {
-    public Comment createComment(Comment comment, Integer postId, Integer userId) throws Exception;
+    
+    CommentDto createComment(Comment comment, Long postId, Long userId) throws Exception;
 
-    public Comment likedComment(Integer commentId, Integer userId) throws Exception;
+    CommentDto likeComment(Long commentId, Long userId) throws Exception;
 
-    public Comment findCommentByCommentId(Integer commentId);
-
+    CommentDto findCommentById(Long commentId) throws Exception;
+    
+    CommentDto createCommentInShortVideo(Comment comment, Long shortVideoId, Long userId) throws Exception;
 }

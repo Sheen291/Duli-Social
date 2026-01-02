@@ -1,116 +1,186 @@
 package com.duli.duli_social.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import com.duli.duli_social.repository.UserRepository;
-import org.hibernate.type.descriptor.java.LocalDateTimeJavaType;
+import java.util.stream.Collectors;
+
+import com.duli.duli_social.dto.CommentDto;
+import com.duli.duli_social.dto.PostDto;
+import com.duli.duli_social.dto.UserDto;
+import com.duli.duli_social.models.NotificationType; // 1. Import Enum
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.duli.duli_social.models.Post;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.PostRepository;
+import com.duli.duli_social.repository.UserRepository;
 
 @Service
-public class PostServiceImplementation implements PostService{
+public class PostServiceImplementation implements PostService {
 
-    private final UserRepository userRepository;
-    //do đã dùng repository extend từ jpa nên sẽ không cần viết lệnh sql, chỉ cần gọi postRepository rồi dùng method là được
     @Autowired
     PostRepository postRepository;
 
     @Autowired
-    UserService userService;
+    UserRepository userRepository;
 
     @Autowired
-    UserRepository usRepository;
-
-    PostServiceImplementation(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    UserService userService;
+    
+    // 2. Inject NotificationService
+    @Autowired
+    NotificationService notificationService;
 
     @Override
-    public Post createPost(Post post, Integer userId) throws Exception {
-
+    public Post createPost(Post post, Long userId) throws Exception {
         User user = userService.findUserById(userId);
 
-        Post newPost=new Post();
+        Post newPost = new Post();
         newPost.setCaption(post.getCaption());
         newPost.setImage(post.getImage());
         newPost.setVideo(post.getVideo());
         newPost.setUser(user);
-        newPost.setCreatedAt(LocalDateTime.now());
+        
         return postRepository.save(newPost);
     }
 
     @Override
     @Transactional
-    public String deletePost(Integer postId, Integer userId) throws Exception {
-        Post post=findPostById(postId);
-        User user=userService.findUserById(userId);
-        
-        if(post.getUser().getId()!=user.getId()) {
-            throw new Exception("cant delete because this post's not yours");
-        }
-        //phải xóa hết ở các bảng liên quan (users_saves_post) vì nếu không xóa thì khi xóa post, danh sách saved của user sẽ trỏ vào 1 post không tồn tại
-        userRepository.unsavePostFromAllUsers(postId);
+    public String deletePost(Long postId, Long userId) throws Exception {
+        Post post = findPostEntityById(postId);
+        User user = userService.findUserById(userId);
 
+        if (!post.getUser().getId().equals(user.getId())) {
+            throw new Exception("You can't delete another user's post");
+        }
+          
         postRepository.delete(post);
-        return "post deleted successfully";
+        return "Post deleted successfully";
     }
 
     @Override
-    public List<Post> findPostByUserId(Integer userId) throws Exception {
-        
-        return postRepository.findPostByUserId(userId);
+    public Page<PostDto> findPostByUserId(Long userId, int page, int size) throws Exception {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findPostByUserId(userId, pageable);
+        return posts.map(this::mapToDto);
     }
 
     @Override
-    public Post findPostById(Integer postId) throws Exception {
-        //do findById trong jpa trả về Optional<Post> mà không trả về trực tiếp dữ liệu dạng Post nên phải đặt là thế
-        //ưu điểm là tránh null
-        Optional<Post> otp=postRepository.findById(postId);
-        //thêm vào cho chắc
-        if(otp.isEmpty()) {
-            throw new Exception("post not found with id " + postId);
-        }
-        return otp.get();
+    public Page<PostDto> findAllPost(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findAllPosts(pageable);
+        return posts.map(this::mapToDto);
     }
 
     @Override
-    public List<Post> findAllPost() {
-        
-        return postRepository.findAll();
+    public PostDto findPostById(Long postId) throws Exception {
+        Post post = findPostEntityById(postId);
+        return mapToDto(post);
     }
 
     @Override
-    public Post savePost(Integer postId, Integer userId) throws Exception {
-        Post post=findPostById(postId);
-        User user=userService.findUserById(userId);
-        if(user.getSavedPost().contains(post)) {
+    public PostDto savePost(Long postId, Long userId) throws Exception {
+        Post post = findPostEntityById(postId);
+        User user = userService.findUserById(userId);
+
+        if (user.getSavedPost().contains(post)) {
             user.getSavedPost().remove(post);
-        }
-        else 
+        } else {
             user.getSavedPost().add(post);
-        
+        }
         userRepository.save(user);
-        return post;
+        
+        return mapToDto(post);
     }
 
+    // --- 3. Cập nhật hàm Like Post ---
     @Override
-    public Post likePost(Integer postId, Integer userId) throws Exception {        
-        Post post=findPostById(postId);
-        User user=userService.findUserById(userId);
-        if(post.getLikedUser().contains(user)) {
-            post.getLikedUser().remove(user);
-        }
-        else {
-            post.getLikedUser().add(user);
+    public PostDto likePost(Long postId, Long userId) throws Exception {
+        Post post = findPostEntityById(postId);
+        User user = userService.findUserById(userId);
+
+        if (post.getLikedUsers().contains(user)) {
+            // Nếu đã like rồi -> Bấm lần nữa là UNLIKE -> Không thông báo
+            post.getLikedUsers().remove(user);
+        } else {
+            // Nếu chưa like -> LIKE -> Tạo thông báo
+            post.getLikedUsers().add(user);
+
+            // GỌI NOTIFICATION SERVICE
+            notificationService.createNotification(
+                post.getUser(),              // Người nhận: Chủ bài viết
+                user,                        // Người gây ra: Người đang bấm like
+                NotificationType.LIKE_POST,  // Loại thông báo
+                "liked your post",           // Nội dung
+                post.getId()                 // Related ID: ID bài viết
+            );
         }
         
-        return postRepository.save(post);
+        Post savedPost = postRepository.save(post);
+        return mapToDto(savedPost);
+    }
+    // ---------------------------------
+
+    private Post findPostEntityById(Long postId) throws Exception {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new Exception("Post not found with id " + postId));
     }
 
+    private PostDto mapToDto(Post post) {
+        PostDto dto = new PostDto();
+        dto.setId(post.getId());
+        dto.setCaption(post.getCaption());
+        dto.setImage(post.getImage());
+        dto.setVideo(post.getVideo());
+        dto.setCreatedAt(post.getCreatedAt());
+        dto.setTotalComments(post.getComments().size());
+        
+        User u = post.getUser();
+        UserDto userDto = new UserDto();
+        userDto.setId(u.getId());
+        userDto.setFirstName(u.getFirstName());
+        userDto.setLastName(u.getLastName());
+        userDto.setImage(u.getImage());
+        userDto.setEmail(u.getEmail());
+        dto.setUser(userDto);
+        
+        dto.setLikedUserIds(post.getLikedUsers().stream()
+                .map(User::getId)
+                .collect(Collectors.toList()));
+
+        if (post.getComments() != null && !post.getComments().isEmpty()) {
+            List<CommentDto> commentDtos = post.getComments().stream().map(comment -> {
+                CommentDto cDto = new CommentDto();
+                cDto.setId(comment.getId());
+                cDto.setContent(comment.getContent());
+                cDto.setCreatedAt(comment.getCreatedAt());
+
+                User commentUser = comment.getUser();
+                UserDto cuDto = new UserDto();
+                cuDto.setId(commentUser.getId());
+                cuDto.setFirstName(commentUser.getFirstName());
+                cuDto.setLastName(commentUser.getLastName());
+                cuDto.setImage(commentUser.getImage());
+                cuDto.setEmail(commentUser.getEmail());
+                
+                cDto.setUser(cuDto);
+                
+                return cDto;
+            }).collect(Collectors.toList());
+            
+            dto.setComments(commentDtos);
+            dto.setTotalComments(commentDtos.size());
+        } else {
+            dto.setComments(new ArrayList<>());
+            dto.setTotalComments(0);
+        }
+        
+        return dto;
+    }
 }

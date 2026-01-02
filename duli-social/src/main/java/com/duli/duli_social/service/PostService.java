@@ -2,21 +2,23 @@ package com.duli.duli_social.service;
 
 import java.util.List;
 
+import com.duli.duli_social.dto.PostDto;
 import com.duli.duli_social.models.Post;
+import org.springframework.data.domain.Page;
 
 public interface PostService {
 
-    Post createPost(Post post, Integer userId) throws Exception;
+    Post createPost(Post post, Long userId) throws Exception;
 
-    String deletePost(Integer postId, Integer userId) throws Exception;
+    String deletePost(Long postId, Long userId) throws Exception;
 
-    List<Post> findPostByUserId(Integer userId) throws Exception;
+    Page<PostDto> findPostByUserId(Long userId, int page, int size) throws Exception;
 
-    Post findPostById(Integer postId) throws Exception;
+    PostDto findPostById(Long postId) throws Exception;
 
-    List<Post> findAllPost();
+    Page<PostDto> findAllPost(int page, int size);
 
-    Post savePost(Integer postId, Integer userId) throws Exception;
+    PostDto savePost(Long postId, Long userId) throws Exception;
 
-    Post likePost(Integer postId, Integer userId) throws Exception;
+    PostDto likePost(Long postId, Long userId) throws Exception;
 }

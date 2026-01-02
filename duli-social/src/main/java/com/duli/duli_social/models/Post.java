@@ -1,117 +1,86 @@
 package com.duli.duli_social.models;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
-
-public class Post {
-    //tự động tạo id nếu không cung cấp
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Integer id;
+@Table(name = "posts")
+public class Post extends BaseEntity {
 
     private String caption;
-    
+
+    @Column(name = "image_url")
     private String image;
-    
+
+    @Column(name = "video_url")
     private String video;
-    
+
     @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private LocalDateTime createdAt;
-    
-    @OneToMany
-    private List<User> likedUser = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+        name = "post_likes",
+        joinColumns = @JoinColumn(name = "post_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> likedUsers = new HashSet<>();
 
-    @OneToMany
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
     public Post() {
-
     }
-
-    
-    public Post(Integer id, String caption, String image, String video, User user, LocalDateTime createdAt,
-            List<User> likedUser, List<Comment> comments) {
-        this.id = id;
-        this.caption = caption;
-        this.image = image;
-        this.video = video;
-        this.user = user;
-        this.createdAt = createdAt;
-        this.likedUser = likedUser;
-        this.comments = comments;
-    }
-
-
-
 
 
     public String getCaption() {
         return caption;
     }
+
     public void setCaption(String caption) {
         this.caption = caption;
     }
+
     public String getImage() {
         return image;
     }
+
     public void setImage(String image) {
         this.image = image;
     }
+
     public String getVideo() {
         return video;
     }
+
     public void setVideo(String video) {
         this.video = video;
     }
+
     public User getUser() {
         return user;
     }
+
     public void setUser(User user) {
         this.user = user;
     }
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    public Integer getId() {
-        return id;
-    }
-    public void setId(Integer id) {
-        this.id = id;
+
+    public Set<User> getLikedUsers() {
+        return likedUsers;
     }
 
-
-    public List<User> getLikedUser() {
-        return likedUser;
+    public void setLikedUsers(Set<User> likedUsers) {
+        this.likedUsers = likedUsers;
     }
-
-
-    public void setLikedUser(List<User> likedUser) {
-        this.likedUser = likedUser;
-    }
-
 
     public List<Comment> getComments() {
         return comments;
     }
-
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;

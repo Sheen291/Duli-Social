@@ -1,63 +1,41 @@
 package com.duli.duli_social.models;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 
 @Entity
-public class Comment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Integer id;
+@Table(name = "comments")
+public class Comment extends BaseEntity {
 
-    //một người có thể có nhiều cmt nhưng 1 cmt thì k thể do nhiều người cmt
-    @ManyToOne
-    private User user;
-
+    @Column(nullable = false)
     private String content;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private Post post;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "short_video_id")
+    private ShortVideo shortVideo;
+
     @ManyToMany
-    private List<User> liked = new ArrayList<>();
+    @JoinTable(
+        name = "comment_likes",
+        joinColumns = @JoinColumn(name = "comment_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> likedUsers = new HashSet<>();
 
-    private LocalDateTime createdAt;
-
-
-    
     public Comment() {
-
-    }
-
-    public Comment(Integer id, User user, String content, List<User> liked, LocalDateTime createdAt) {
-        this.id = id;
-        this.user = user;
-        this.content = content;
-        this.liked = liked;
-        this.createdAt = createdAt;
-    }
-
-
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 
     public String getContent() {
@@ -68,20 +46,35 @@ public class Comment {
         this.content = content;
     }
 
-    public List<User> getLiked() {
-        return liked;
+    public User getUser() {
+        return user;
     }
 
-    public void setLiked(List<User> liked) {
-        this.liked = liked;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public Post getPost() {
+        return post;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setPost(Post post) {
+        this.post = post;
     }
 
+    public ShortVideo getShortVideo() {
+        return shortVideo;
+    }
+
+    public void setShortVideo(ShortVideo shortVideo) {
+        this.shortVideo = shortVideo;
+    }
+
+    public Set<User> getLikedUsers() {
+        return likedUsers;
+    }
+
+    public void setLikedUsers(Set<User> likedUsers) {
+        this.likedUsers = likedUsers;
+    }
 }

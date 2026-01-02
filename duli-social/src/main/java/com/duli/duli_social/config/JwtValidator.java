@@ -22,7 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtValidator extends OncePerRequestFilter{
 
     
-    //dùng để check token
+    //dùng để check token, chạy đúng 1 lần với mối request gửi lên hệ thống
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

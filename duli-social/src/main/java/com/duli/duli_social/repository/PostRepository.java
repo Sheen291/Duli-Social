@@ -1,16 +1,18 @@
 package com.duli.duli_social.repository;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.duli.duli_social.models.Post;
-//JpaRepository dùng để làm việc với database mà không cần viết SQL thủ công
-//(tự động sinh ra các hàm cơ bản như findAll, findById, save, delete...)
-public interface PostRepository extends JpaRepository<Post, Integer>{
 
-    @Query("select p from Post p where p.user.id=:userId")
-    List<Post> findPostByUserId(Integer userId);
+public interface PostRepository extends JpaRepository<Post, Long> {
 
+    @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
+    Page<Post> findPostByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
+    Page<Post> findAllPosts(Pageable pageable);
 }
