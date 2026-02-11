@@ -7,7 +7,10 @@ import {
     LOG_OUT, SEARCH_USER_SUCCESS, SEARCH_USER_REQUEST, SEARCH_USER_FAILURE, 
     GET_USER_BY_ID_REQUEST, GET_USER_BY_ID_SUCCESS, GET_USER_BY_ID_FAILURE,
     LOGIN_GOOGLE_REQUEST, LOGIN_GOOGLE_SUCCESS, LOGIN_GOOGLE_FAILURE,
-    FOLLOW_USER_REQUEST, FOLLOW_USER_SUCCESS, FOLLOW_USER_FAILURE
+    FOLLOW_USER_REQUEST, FOLLOW_USER_SUCCESS, FOLLOW_USER_FAILURE,
+    SEARCH_POST_FAILURE, SEARCH_POST_REQUEST, SEARCH_POST_SUCCESS,
+    SEARCH_REELS_FAILURE, SEARCH_REELS_REQUEST, SEARCH_REELS_SUCCESS,
+    GET_POPULAR_USER_FAILURE, GET_POPULAR_USER_REQUEST, GET_POPULAR_USER_SUCCESS
 } from "./auth.actionType";
 
 export const API_BASE_URL = "http://localhost:8080";
@@ -167,3 +170,48 @@ export const followUserAction = (userId) => async(dispatch) => {
         dispatch({type: FOLLOW_USER_FAILURE, payload: error.message});
     }
 };
+
+export const searchPostAction = (query) => async(dispatch) => {
+    dispatch({type: SEARCH_POST_REQUEST});
+    try {
+        const {data} = await axios.get(`${API_BASE_URL}/api/posts/search?query=${query}`, getConfig());
+        
+        console.log("search post success", data);
+        
+        dispatch({type: SEARCH_POST_SUCCESS, payload: data});
+    } catch (error) {
+        console.log("search post failure", error);
+        
+        const errorMessage = error.response?.data?.message || error.message || "Search post failed";
+        dispatch({type: SEARCH_POST_FAILURE, payload: errorMessage});
+    }
+}
+
+export const searchReelsAction = (query) => async(dispatch) => {
+    dispatch({type: SEARCH_REELS_REQUEST});
+    try {
+        const {data} = await axios.get(`${API_BASE_URL}/api/shortvideos/search?query=${query}`, getConfig());
+        
+        console.log("search reels success", data);
+        
+        dispatch({type: SEARCH_REELS_SUCCESS, payload: data});
+    } catch (error) {
+        console.log("search reels failure", error);
+        
+        const errorMessage = error.response?.data?.message || error.message || "Search reels failed";
+        dispatch({type: SEARCH_REELS_FAILURE, payload: errorMessage});
+    }
+}
+
+export const getPopularUsersAction = () => async(dispatch) => {
+    dispatch({type: GET_POPULAR_USER_REQUEST});
+    try {
+        const {data} = await axios.get(`${API_BASE_URL}/api/users`, getConfig());
+        
+        console.log("get popular users success", data);
+        dispatch({type: GET_POPULAR_USER_SUCCESS, payload: data});
+    } catch (error) {
+        console.log("get popular users failure", error);
+        dispatch({type: GET_POPULAR_USER_FAILURE, payload: error});
+    }
+}

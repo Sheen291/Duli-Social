@@ -1,8 +1,9 @@
 package com.duli.duli_social.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,6 +34,30 @@ public class NotificationServiceImplementation implements NotificationService {
     public void createNotification(User recipient, User actor, NotificationType type, String message, Long relatedId) {
         if(recipient.getId().equals(actor.getId())) return;
 
+        if (type == NotificationType.LIKE_POST || type == NotificationType.LIKE_COMMENT || type == NotificationType.FOLLOW_USER) {
+
+            Notification existingNotification = notificationRepository.findByRecipientIdAndActorIdAndTypeAndRelatedId(
+                recipient.getId(), 
+                actor.getId(), 
+                type, 
+                relatedId
+            );
+
+            if (existingNotification != null) {
+                existingNotification.setCreatedAt(LocalDateTime.now());
+                existingNotification.setRead(false);
+                notificationRepository.save(existingNotification);
+                
+                NotificationDto notificationDto = mapToDto(existingNotification);
+                simpMessagingTemplate.convertAndSendToUser(
+                        String.valueOf(recipient.getId()),
+                        "/private-notification",          
+                        notificationDto                 
+                );
+                return; 
+            }
+        }
+
         Notification notification = new Notification();
         notification.setRecipient(recipient);
         notification.setActor(actor);
@@ -40,6 +65,7 @@ public class NotificationServiceImplementation implements NotificationService {
         notification.setMessage(message);
         notification.setRelatedId(relatedId);
         notification.setRead(false);
+        notification.setCreatedAt(LocalDateTime.now()); 
 
         Notification savedNotification = notificationRepository.save(notification);
 
@@ -51,6 +77,20 @@ public class NotificationServiceImplementation implements NotificationService {
                 notificationDto                 
         );
     }
+
+    public void deleteNotification(User recipient, User actor, NotificationType type, Long relatedId) {
+        Notification existingNotification = notificationRepository.findByRecipientIdAndActorIdAndTypeAndRelatedId(
+            recipient.getId(), 
+            actor.getId(), 
+            type, 
+            relatedId
+        );
+
+        if (existingNotification != null) {
+            notificationRepository.delete(existingNotification);
+        }
+    }
+    // ----------------------------------------------
 
     @Override
     public List<NotificationDto> findUsersNotification(Long userId) {

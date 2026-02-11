@@ -31,6 +31,14 @@ public class Post extends BaseEntity {
     )
     private Set<User> likedUsers = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+        name = "post_saves",
+        joinColumns = @JoinColumn(name = "post_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> savedUsers = new HashSet<>();
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
@@ -84,5 +92,15 @@ public class Post extends BaseEntity {
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;
+    }
+
+
+    public Set<User> getSavedUsers() {
+        return savedUsers;
+    }
+
+
+    public void setSavedUsers(Set<User> savedUsers) {
+        this.savedUsers = savedUsers;
     }
 }

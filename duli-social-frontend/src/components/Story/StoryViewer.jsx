@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Avatar } from '@mui/material';
+import { Modal, Avatar, Box, Typography, IconButton } from '@mui/material'; 
 import CloseIcon from '@mui/icons-material/Close';
 
 const StoryViewer = ({ open, handleClose, stories, initialIndex = 0 }) => {
@@ -15,37 +15,29 @@ const StoryViewer = ({ open, handleClose, stories, initialIndex = 0 }) => {
         }
     }, [open, initialIndex]);
 
-    // 1. LOGIC CHẠY THANH THỜI GIAN (Chỉ việc tăng số, không xử lý logic đóng mở ở đây)
     useEffect(() => {
         if (!open || !currentStory) return;
 
         const interval = setInterval(() => {
             setProgress((oldProgress) => {
-                if (oldProgress >= 100) {
-                    return 100; // Giữ ở 100 rồi để useEffect kia xử lý
-                }
+                if (oldProgress >= 100) return 100;
                 return oldProgress + 2; 
             });
         }, 100);
 
         return () => clearInterval(interval);
-    }, [currentStory, open]); // Bỏ stories.length ra khỏi dependency để tránh re-render thừa
+    }, [currentStory, open]); 
 
-    // 2. LOGIC CHUYỂN STORY (FIX LỖI UPDATE WHILE RENDERING TẠI ĐÂY)
-    // useEffect này sẽ chạy SAU KHI render xong, nên an toàn để gọi handleClose
     useEffect(() => {
         if (progress >= 100) {
             if (currentStoryIndex < stories.length - 1) {
-                // Chuyển sang story tiếp theo
                 setCurrentStoryIndex((prev) => prev + 1);
                 setProgress(0);
             } else {
-                // Hết story -> Đóng Modal
                 handleClose();
             }
         }
     }, [progress, currentStoryIndex, stories.length, handleClose]);
-
 
     const handleNavigate = (direction) => {
         if (direction === "next") {
@@ -72,69 +64,100 @@ const StoryViewer = ({ open, handleClose, stories, initialIndex = 0 }) => {
             open={open} 
             onClose={handleClose} 
             sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(0, 0, 0, 0.9)' } } }}
         >
-            <div className='relative w-[90vw] h-[90vh] md:w-[400px] md:h-[80vh] bg-black rounded-xl overflow-hidden flex flex-col'>
+            {/* MAIN CARD CONTAINER */}
+            <Box sx={{ 
+                position: 'relative',
+                width: { xs: '100vw', md: '400px' },
+                height: { xs: '100vh', md: '85vh' },
+                bgcolor: 'black', 
+                borderRadius: { xs: 0, md: 4 },
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                outline: 'none'
+            }}>
                 
-                <div 
-                    className='absolute top-0 left-0 w-1/3 h-full z-20' 
+                {/* --- TOUCH AREAS FOR NAVIGATION --- */}
+                <Box 
                     onClick={() => handleNavigate("prev")}
-                ></div>
-                <div 
-                    className='absolute top-0 right-0 w-2/3 h-full z-20' 
+                    sx={{ position: 'absolute', top: 0, left: 0, width: '30%', height: '100%', zIndex: 20, cursor: 'pointer' }}
+                />
+                <Box 
                     onClick={() => handleNavigate("next")}
-                ></div>
+                    sx={{ position: 'absolute', top: 0, right: 0, width: '70%', height: '100%', zIndex: 20, cursor: 'pointer' }}
+                />
 
-                <div className='absolute top-0 w-full p-4 z-30 bg-gradient-to-b from-black/60 to-transparent'>
-                    <div className="flex space-x-1 mb-2">
+                {/* --- HEADER OVERLAY (Progress + User Info) --- */}
+                <Box sx={{ 
+                    position: 'absolute', top: 0, width: '100%', p: 2, zIndex: 30, 
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)' 
+                }}>
+                    
+                    {/* Progress Bars */}
+                    <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
                         {stories.map((_, index) => (
-                            <div key={index} className="h-1 bg-gray-500/50 rounded-full flex-1 overflow-hidden">
-                                <div 
-                                    className="h-full bg-white transition-all duration-100 ease-linear"
-                                    style={{ 
-                                        width: index < currentStoryIndex ? '100%' : 
-                                               index === currentStoryIndex ? `${progress}%` : '0%' 
+                            <Box key={index} sx={{ height: 4, bgcolor: 'rgba(255,255,255,0.3)', borderRadius: 2, flex: 1, overflow: 'hidden' }}>
+                                <Box 
+                                    sx={{ 
+                                        height: '100%', bgcolor: 'white', 
+                                        width: index < currentStoryIndex ? '100%' : (index === currentStoryIndex ? `${progress}%` : '0%'),
+                                        transition: 'width 0.1s linear'
                                     }}
-                                ></div>
-                            </div>
+                                />
+                            </Box>
                         ))}
-                    </div>
+                    </Box>
 
-                    <div className='flex items-center justify-between mt-2'>
-                        <div className='flex items-center gap-2'>
-                            <Avatar src={currentStory.user?.image} sx={{ width: 32, height: 32 }} />
-                            <div className='flex flex-col'>
-                                <span className='text-white font-semibold text-sm shadow-black drop-shadow-md'>
+                    {/* User Info & Close */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar src={currentStory.user?.image} sx={{ width: 32, height: 32, border: '1px solid white' }} />
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 600, lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                                     {currentStory.user?.firstName} {currentStory.user?.lastName}
-                                </span>
-                                <span className='text-gray-300 text-[10px]'>
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#e0e0e0', fontSize: '0.7rem' }}>
                                     {new Date(currentStory.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </span>
-                            </div>
-                        </div>
-                        <CloseIcon 
-                            sx={{ color: 'white', cursor: 'pointer', zIndex: 40 }} 
-                            onClick={(e) => { e.stopPropagation(); handleClose(); }} 
-                        />
-                    </div>
-                </div>
+                                </Typography>
+                            </Box>
+                        </Box>
+                        
+                        <IconButton onClick={(e) => { e.stopPropagation(); handleClose(); }} sx={{ color: 'white', zIndex: 40 }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                </Box>
 
-                <div className='flex-1 flex items-center justify-center bg-gray-900'>
+                {/* --- MEDIA CONTENT --- */}
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#121212' }}>
                     {currentStory.image && (
-                        <img src={currentStory.image} alt="" className='w-full h-full object-cover' />
+                        <img src={currentStory.image} alt="story" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     )}
                     {currentStory.video && (
                         <video src={currentStory.video} autoPlay className='w-full h-full object-contain' />
                     )}
-                </div>
+                </Box>
                 
-                 {currentStory.caption && (
-                    <div className='absolute bottom-10 w-full text-center px-4 z-10'>
-                        <p className='text-white text-lg font-medium drop-shadow-md bg-black/30 p-2 rounded-lg inline-block'>
+                {/* --- CAPTION OVERLAY --- */}
+                {currentStory.caption && (
+                    <Box sx={{ 
+                        position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', px: 2, zIndex: 25 
+                    }}>
+                        <Typography 
+                            variant="body1" 
+                            sx={{ 
+                                color: 'white', fontWeight: 500, 
+                                bgcolor: 'rgba(0,0,0,0.5)', px: 2, py: 1, borderRadius: 4,
+                                display: 'inline-block' 
+                            }}
+                        >
                             {currentStory.caption}
-                        </p>
-                    </div>
+                        </Typography>
+                    </Box>
                 )}
-            </div>
+            </Box>
         </Modal>
     );
 };

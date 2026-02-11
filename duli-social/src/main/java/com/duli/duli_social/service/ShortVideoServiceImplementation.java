@@ -1,5 +1,7 @@
 package com.duli.duli_social.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +11,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.duli.duli_social.dto.CommentDto;
 import com.duli.duli_social.dto.ShortVideoDto;
 import com.duli.duli_social.dto.UserDto;
+import com.duli.duli_social.models.NotificationType;
+import com.duli.duli_social.models.Post;
 import com.duli.duli_social.models.ShortVideo;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.ShortVideoRepository;
@@ -23,6 +28,9 @@ public class ShortVideoServiceImplementation implements ShortVideoService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public ShortVideoDto createShortVideo(ShortVideo shortVideo, User user) {
@@ -58,6 +66,16 @@ public class ShortVideoServiceImplementation implements ShortVideoService {
             shortVideo.getLikedUsers().remove(user);
         } else {
             shortVideo.getLikedUsers().add(user);
+
+            if (!shortVideo.getUser().getId().equals(user.getId())) {
+                notificationService.createNotification(
+                    shortVideo.getUser(),           
+                    user,                         
+                    NotificationType.LIKE_POST,     
+                    user.getFirstName() + " đã thích thước phim của bạn.", 
+                    shortVideo.getId()
+                );
+            }
         }
 
         ShortVideo savedVideo = shortVideoRepository.save(shortVideo);
@@ -109,6 +127,55 @@ public class ShortVideoServiceImplementation implements ShortVideoService {
                 .map(User::getId)
                 .collect(Collectors.toList()));
         
+        List<CommentDto> commentDtos = sv.getComments().stream().map(comment -> {
+            CommentDto cDto = new CommentDto();
+            cDto.setId(comment.getId());
+            cDto.setContent(comment.getContent());
+            cDto.setCreatedAt(comment.getCreatedAt());
+            
+            User commentUser = comment.getUser();
+            UserDto cuDto = new UserDto();
+            cuDto.setId(commentUser.getId());
+            cuDto.setFirstName(commentUser.getFirstName());
+            cuDto.setLastName(commentUser.getLastName());
+            cuDto.setImage(commentUser.getImage());
+            cDto.setUser(cuDto);
+            
+            return cDto;
+        }).collect(Collectors.toList());
+
+        dto.setComments(commentDtos);
+
         return dto;
+    }
+
+    @Override
+    public List<ShortVideoDto> searchShortVideo(String query) {
+        List<ShortVideo> entities = shortVideoRepository.searchShortVideo(query);
+
+        List<ShortVideoDto> dtos = new ArrayList<>();
+
+        for (ShortVideo video : entities) {
+            ShortVideoDto dto = new ShortVideoDto();
+            
+            dto.setId(video.getId());
+            dto.setTitle(video.getTitle());
+            dto.setVideoUrl(video.getVideoUrl());
+            dto.setCreatedAt(video.getCreatedAt());
+
+            if (video.getUser() != null) {
+                UserDto userDto = new UserDto();
+                userDto.setId(video.getUser().getId());
+                userDto.setFirstName(video.getUser().getFirstName());
+                userDto.setLastName(video.getUser().getLastName());
+                userDto.setImage(video.getUser().getImage());
+                
+                dto.setUser(userDto);
+            }
+
+            dtos.add(dto);
+        }
+
+        return dtos;
     }
 }

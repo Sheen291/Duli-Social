@@ -1,30 +1,69 @@
 import React from 'react'
-import { Avatar } from '@mui/material'
+import { Avatar, Box, Typography, useTheme } from '@mui/material' 
 
 const StoryCircle = ({ user }) => {
+  const theme = useTheme(); 
+
   return (
-    <div className='flex flex-col items-center cursor-pointer min-w-[80px]'> 
+    <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        cursor: 'pointer', 
+        minWidth: '80px' 
+    }}> 
       
-      {/* 1. VÒNG TRÒN VIỀN NGOÀI (Gradient màu tím/hồng đặc trưng) */}
-      <div className="w-[70px] h-[70px] rounded-full flex items-center justify-center bg-gradient-to-tr from-yellow-400 to-fuchsia-600 p-[3px]">
+      <Box className="bg-gradient-to-tr from-yellow-400 to-fuchsia-600"
+        sx={{
+            width: '70px',
+            height: '70px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: '3px' 
+        }}
+      >
           
-          {/* 2. VÒNG TRÒN TRẮNG ĐỆM (Tạo khoảng cách giữa ảnh và viền màu) */}
-          <div className="bg-white rounded-full p-[2px] w-full h-full flex items-center justify-center">
+          <Box 
+            sx={{ 
+                bgcolor: 'background.paper', 
+                borderRadius: '50%', 
+                p: '2px', 
+                width: '100%', 
+                height: '100%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+            }}
+          >
               
-              {/* 3. AVATAR CHÍNH (Nằm gọn bên trong) */}
               <Avatar 
-                  sx={{ width: '100%', height: '100%' }} // Chiếm hết khổ div cha
+                  sx={{ width: '100%', height: '100%' }}
                   src={user?.image || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                   alt={user?.firstName}
               />
-          </div>
-      </div>
+          </Box>
+      </Box>
       
       {/* Tên User */}
-      <p className='text-xs font-medium opacity-90 mt-1 w-20 truncate text-center'>
+      <Typography 
+        variant="caption" 
+        sx={{ 
+            fontWeight: 500, 
+            mt: 1, 
+            width: '75px', 
+            textAlign: 'center',
+            display: 'block',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: 'text.primary' 
+        }}
+      >
           {user?.firstName ? (user.firstName + " " + user.lastName) : "User"}
-      </p>
-    </div>
+      </Typography>
+    </Box>
   )
 }
 

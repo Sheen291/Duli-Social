@@ -6,7 +6,8 @@ import {
 const initialState = {
     notifications: [],
     loading: false,
-    error: null
+    error: null,
+    newNotification: []
 };
 
 export const notificationReducer = (state = initialState, action) => {
@@ -20,7 +21,8 @@ export const notificationReducer = (state = initialState, action) => {
         case NEW_NOTIFICATION_RECEIVED:
             return { 
                 ...state, 
-                notifications: [action.payload, ...state.notifications] 
+                notifications: [action.payload, ...state.notifications],
+                newNotifications: [action.payload, ...state.newNotifications],
             };
 
         case GET_NOTIFICATIONS_FAILURE:

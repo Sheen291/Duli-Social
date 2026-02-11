@@ -19,6 +19,8 @@ public class PostDto {
 
     private List<CommentDto> comments = new ArrayList<>();
 
+    private List<Long> savedUserIds = new ArrayList<>();
+
     public PostDto() {
     }
 
@@ -48,4 +50,12 @@ public class PostDto {
 
     public List<CommentDto> getComments() { return comments; }
     public void setComments(List<CommentDto> comments) { this.comments = comments; }
+
+    public List<Long> getSavedUserIds() {
+        return savedUserIds;
+    }
+
+    public void setSavedUserIds(List<Long> savedUserIds) {
+        this.savedUserIds = savedUserIds;
+    }
 }

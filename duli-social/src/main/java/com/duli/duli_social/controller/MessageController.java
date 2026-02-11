@@ -47,6 +47,16 @@ public class MessageController {
         
         simpMessagingTemplate.convertAndSend("/group/" + req.getChatId(), savedMessage);
         
+        List<User> participants = savedMessage.getChat().getUsers();
+
+        for (User participant : participants) {
+            simpMessagingTemplate.convertAndSendToUser(
+                    String.valueOf(participant.getId()), 
+                    "/private", 
+                    savedMessage
+            );
+        }
+
         return savedMessage;
     }
 

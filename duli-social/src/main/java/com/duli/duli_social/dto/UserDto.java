@@ -12,8 +12,8 @@ public class UserDto {
     private String image;
     private String bio;
     
-    private List<Long> followers = new ArrayList<>();
-    private List<Long> followings = new ArrayList<>();
+    private List<UserDto> followers = new ArrayList<>();
+    private List<UserDto> followings = new ArrayList<>();
 
     private List<Long> savedPostIds = new ArrayList<>();
 
@@ -22,7 +22,7 @@ public class UserDto {
 
     
     public UserDto(Long id, String firstName, String lastName, String email, String gender, String image, String bio,
-            List<Long> followers, List<Long> followings, List<Long> savedPostIds) {
+            List<UserDto> followers, List<UserDto> followings, List<Long> savedPostIds) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -95,19 +95,19 @@ public class UserDto {
         this.image = image;
     }
 
-    public List<Long> getFollowers() {
+    public List<UserDto> getFollowers() {
         return followers;
     }
 
-    public void setFollowers(List<Long> followers) {
+    public void setFollowers(List<UserDto> followers) {
         this.followers = followers;
     }
 
-    public List<Long> getFollowings() {
+    public List<UserDto> getFollowings() {
         return followings;
     }
 
-    public void setFollowings(List<Long> followings) {
+    public void setFollowings(List<UserDto> followings) {
         this.followings = followings;
     }
 

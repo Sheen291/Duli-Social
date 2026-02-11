@@ -1,5 +1,5 @@
-import { Avatar, Card, IconButton } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import { Avatar, Card, IconButton, Box, Typography, useTheme, CircularProgress } from '@mui/material';
+import React, { useEffect, useState, useRef } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import StoryCircle from './StoryCircle';
 import ImageIcon from '@mui/icons-material/Collections';
@@ -9,31 +9,28 @@ import { useSelector, useDispatch } from 'react-redux';
 import PostCard from '../Post/PostCard';
 import PostCreate from '../Post/PostCreate';
 import { getAllPostAction } from '../../Redux/Post/post.action';
-import { getHomeStoryAction } from '../../Redux/Story/story.action';
-
+import { getHomeStoryAction, openStoryViewAction } from '../../Redux/Story/story.action';
 import StoryCreate from '../Story/StoryCreate';
-import StoryViewer from '../Story/StoryViewer';
-
-const storys = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+import { Helmet } from 'react-helmet-async';
+import { v4 as uuidv4 } from 'uuid';
 
 const MiddleHome = () => {
+  const theme = useTheme(); 
   const { auth, post, story } = useSelector(store => store);
   const dispatch = useDispatch();
 
+  const sessionIdRef = useRef(uuidv4());
   const [openCreatePost, setOpenCreatePost] = useState(false);
-  
   const [page, setPage] = useState(0);
-
   const [openStoryCreate, setOpenStoryCreate] = useState(false);
-  
-  const [currentUserStories, setCurrentUserStories] = useState([]);
-
-  const [openStoryView, setOpenStoryView] = useState(false);
-  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
 
   const handleOpenCreatePost = () => setOpenCreatePost(true);
   const handleClose = () => setOpenCreatePost(false);
 
+  useEffect(() => {
+    const reqData = { page: page, sessionId: sessionIdRef.current };
+    dispatch(getAllPostAction(reqData));
+  }, [page, post.commentCreated, dispatch]);
 
   useEffect(() => {
     if (story.stories.length === 0) {
@@ -41,138 +38,119 @@ const MiddleHome = () => {
     }
   }, [story.stories.length, dispatch]);
 
-  useEffect(() => {
-    dispatch(getAllPostAction(page));
-  }, [page, post.commentCreated, dispatch]);
-
-  const handleScroll = () => {
-    if (
-      window.innerHeight + document.documentElement.scrollTop + 10 >=
-      document.documentElement.offsetHeight
-    ) {
-      if (!post.lastPage && !post.loading) {
-        console.log("Load more posts...");
+  const handleScroll = (e) => {
+    const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 50; 
+    if (bottom && !post.lastPage && !post.loading) {
         setPage((prevPage) => prevPage + 1);
-      }
     }
   };
 
-  const getStoryByUserId = (stories) => {
-    const userStories = {};
-    
-    stories.forEach(item => {
-        const userId = item.user.id;
-        if (!userStories[userId]) {
-            userStories[userId] = {
-                user: item.user,
-                stories: []
-            }
-        }
-        userStories[userId].stories.push(item);
-    });
-
-    return Object.values(userStories);
-  };
-
-  const groupedStories = story.stories ? getStoryByUserId(story.stories) : [];
-
-  const handleOpenStoryView = (storiesOfUser) => {
-      setCurrentUserStories(storiesOfUser);
-      setOpenStoryView(true);
-  };
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [post.lastPage, post.loading]);
+  const groupedStories = story.stories ? Object.values(story.stories.reduce((acc, item) => {
+    if (!acc[item.user.id]) acc[item.user.id] = { user: item.user, stories: [] };
+    acc[item.user.id].stories.push(item);
+    return acc;
+  }, {})) : [];
 
   return (
-    <div className='max-w-xl mx-auto pb-10 w-full'>
-      
-      <style>
-        {`
-          .no-scrollbar::-webkit-scrollbar { display: none; }
-          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        `}
-      </style>
+    <Box 
+        onScroll={handleScroll}
+        sx={{ 
+            maxWidth: '600px', mx: 'auto', pb: 10, w: '100%', 
+            height: '100vh', overflowY: 'scroll',
+            minWidth: '300px',
+            '&::-webkit-scrollbar': { display: 'none' },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+            bgcolor: 'background.default',
+            color: 'text.primary'
+        }}
+    >
+      <Helmet><title>Duli Social</title></Helmet>
 
-      <section className='flex items-center p-5 rounded-b-md space-x-4 overflow-x-scroll no-scrollbar'>
-        <div className='flex flex-col items-center cursor-pointer min-w-[80px]'
-            onClick={() => setOpenStoryCreate(true)}>
-          <Avatar sx={{ width: 60, height: 60, bgcolor: 'white', border: '2px dashed', borderColor: '#912f56' }}>
+      <Box sx={{ 
+          display: 'flex', alignItems: 'center', p: 2.5, gap: 2, 
+          overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' } 
+      }}>
+        <Box 
+            onClick={() => setOpenStoryCreate(true)}
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', minWidth: '80px' }}
+        >
+          <Avatar sx={{ 
+              width: 64, height: 64, 
+              bgcolor: 'background.paper',
+              border: '2px dashed', borderColor: '#912f56' 
+          }}>
             <AddIcon sx={{ fontSize: '2rem', color: '#912f56' }} />
           </Avatar>
-          <p className='text-xs font-medium opacity-90 mt-1 truncate w-full text-center'>New</p>
-        </div>
-        {groupedStories.map((group, index) => (
-             <div key={index} onClick={() => handleOpenStoryView(group.stories)}> 
-                <StoryCircle user={group.user} />
-             </div>
-        ))}
-      </section>
+          <Typography variant="caption" sx={{ mt: 0.5, fontWeight: 500 }}>New</Typography>
+        </Box>
 
-      <Card className='mt-5' sx={{ borderRadius: '14px' }}>
-        <div className='p-4'>
-          <div className='flex justify-center gap-3 items-center'>
-            <Avatar src={auth.user?.image} sx={{ width: 40, height: 40 }} />
-            <input 
-              className='outline-none flex-1 bg-slate-100 rounded-full border-none px-4 py-2 text-sm hover:bg-slate-200 transition-colors cursor-pointer'
-              type='text'
-              placeholder={`What's on your mind, ${auth.user?.firstName}?`}
-              readOnly
+        {groupedStories.map((group, index) => (
+             <Box key={index} onClick={() => dispatch(openStoryViewAction(group.user.id))}> 
+                <StoryCircle user={group.user} />
+             </Box>
+        ))}
+      </Box>
+
+      <Card sx={{ 
+          mt: 2, borderRadius: '16px', bgcolor: 'background.paper', 
+          backgroundImage: 'none', 
+          boxShadow: theme.palette.mode === 'dark' ? 'none' : '0px 2px 4px rgba(0,0,0,0.05)',
+          border: theme.palette.mode === 'dark' ? 1 : 0,
+          borderColor: 'divider'
+      }}>
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Avatar src={auth.user?.image} sx={{ width: 40, height: 40, border: 1, borderColor: 'divider' }} />
+            <Box 
               onClick={handleOpenCreatePost}
-            />
-          </div>
-          <div className='flex justify-between mt-3 pt-3 border-t'>
-              <div className='flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-md' onClick={handleOpenCreatePost}>
-                 <ImageIcon sx={{ color: '#58c472' }} />
-                 <span className='text-xs font-medium text-gray-600'>Photo</span>
-              </div>
-              <div className='flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-md' onClick={handleOpenCreatePost}>
-                 <VideoIcon sx={{ color: '#f23e5c' }} />
-                 <span className='text-xs font-medium text-gray-600'>Video</span>
-              </div>
-              <div className='flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded-md' onClick={handleOpenCreatePost}>
-                 <EmotionIcon sx={{ color: '#f8c03e' }} />
-                 <span className='text-xs font-medium text-gray-600'>Feeling</span>
-              </div>
-          </div>
-        </div>
+              sx={{ 
+                flex: 1, px: 2, py: 1.2, borderRadius: '20px', cursor: 'pointer',
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f0f2f5',
+                color: 'text.secondary', transition: '0.2s',
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <Typography variant="body2">What's on your mind, {auth.user?.firstName}?</Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+              {[
+                { icon: <ImageIcon sx={{ color: '#58c472' }} />, label: 'Photo' },
+                { icon: <VideoIcon sx={{ color: '#f23e5c' }} />, label: 'Video' },
+                { icon: <EmotionIcon sx={{ color: '#f8c03e' }} />, label: 'Feeling' }
+              ].map((act, i) => (
+                <Box 
+                  key={i} onClick={handleOpenCreatePost}
+                  sx={{ 
+                    display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', 
+                    px: 2, py: 0.8, borderRadius: '8px', '&:hover': { bgcolor: 'action.hover' } 
+                  }}
+                >
+                   {act.icon}
+                   <Typography variant="caption" fontWeight="600" color="text.secondary">{act.label}</Typography>
+                </Box>
+              ))}
+          </Box>
+        </Box>
       </Card>
 
-      <div className='mt-5 space-y-5'>
+      <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {post.posts.map((item, index) => (
           <PostCard key={item.id || index} item={item} />
         ))}
         
         {post.loading && (
-             <div className="flex justify-center p-4">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-             </div>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress size={28} sx={{ color: '#912f56' }} />
+            </Box>
         )}
-      </div>
+      </Box>
 
-      <div>
-        <PostCreate handleClose={handleClose} open={openCreatePost} />
-      </div>
-
-      <div>
-        <StoryCreate 
-          open={openStoryCreate} 
-          handleClose={() => setOpenStoryCreate(false)} 
-        />
-      </div>
-
-      <div>
-        <StoryViewer 
-          open={openStoryView} 
-          handleClose={() => setOpenStoryView(false)}
-          stories={currentUserStories}
-          initialIndex={0}
-        />
-      </div>
-
-    </div>
+      <PostCreate handleClose={handleClose} open={openCreatePost} />
+      <StoryCreate open={openStoryCreate} handleClose={() => setOpenStoryCreate(false)} />
+    </Box>
   );
 };
 

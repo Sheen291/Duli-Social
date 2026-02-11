@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Box, Avatar, IconButton, Button, CircularProgress, Backdrop } from '@mui/material';
+import { Modal, Box, Avatar, IconButton, Button, CircularProgress, Backdrop, Typography, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,6 +20,7 @@ const style = {
 };
 
 const StoryCreate = ({ open, handleClose }) => {
+    const theme = useTheme(); 
     const dispatch = useDispatch();
     const { auth } = useSelector(store => store);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -54,20 +55,48 @@ const StoryCreate = ({ open, handleClose }) => {
     return (
         <Modal open={open} onClose={handleClose}>
             <Box sx={style}>
+                {/* HEADER */}
                 <div className='flex justify-between items-center mb-4'>
-                    <h2 className='font-bold text-lg'>Create New Story</h2>
-                    <IconButton onClick={handleClose}><CloseIcon /></IconButton>
+                    <Typography variant='h6' fontWeight='bold' color='text.primary'>
+                        Create New Story
+                    </Typography>
+                    <IconButton onClick={handleClose}>
+                        <CloseIcon sx={{ color: 'text.primary' }} />
+                    </IconButton>
                 </div>
 
                 <div className='flex flex-col space-y-4'>
-                    <div className='w-full h-[60vh] bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden relative border-2 border-dashed border-gray-300'>
+                    {/* UPLOAD AREA */}
+                    <Box 
+                        sx={{ 
+                            width: '100%', 
+                            height: '60vh', 
+                            bgcolor: theme.palette.mode === 'dark' ? '#2c2c2c' : '#f5f5f5', 
+                            borderRadius: '12px',
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            overflow: 'hidden', 
+                            position: 'relative',
+                            border: `2px dashed ${theme.palette.divider}` 
+                        }}
+                    >
                         {!selectedFile ? (
                             <label className='cursor-pointer flex flex-col items-center'>
                                 <input type="file" hidden onChange={handleFileChange} />
-                                <div className='w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center mb-2'>
-                                    <AddPhotoAlternateIcon color="primary" />
-                                </div>
-                                <span className='text-sm text-gray-500'>Select photo/video</span>
+                                
+                                <Box sx={{ 
+                                    width: 56, height: 56, 
+                                    bgcolor: theme.palette.mode === 'dark' ? '#444' : '#e0e0e0', 
+                                    borderRadius: '50%', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 
+                                }}>
+                                    <AddPhotoAlternateIcon sx={{ color: '#912f56' }} />
+                                </Box>
+                                
+                                <Typography variant='body2' color='text.secondary'>
+                                    Select photo/video
+                                </Typography>
                             </label>
                         ) : (
                             <>
@@ -76,20 +105,30 @@ const StoryCreate = ({ open, handleClose }) => {
                                 ) : (
                                     <video src={selectedFile} controls className='w-full h-full object-contain bg-black' />
                                 )}
+                                
                                 <IconButton 
-                                    sx={{ position: 'absolute', top: 10, right: 10, bgcolor: 'white' }} 
+                                    sx={{ 
+                                        position: 'absolute', top: 10, right: 10, 
+                                        bgcolor: 'rgba(0,0,0,0.6)', color: 'white',
+                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } 
+                                    }} 
                                     onClick={() => setSelectedFile(null)}
                                 >
                                     <CloseIcon />
                                 </IconButton>
                             </>
                         )}
-                    </div>
+                    </Box>
                     
+                    {/* CAPTION INPUT */}
                     <input 
                         type="text" 
                         placeholder="Add a caption..." 
-                        className="w-full p-2 border-b outline-none text-center"
+                        className="w-full p-2 outline-none text-center bg-transparent"
+                        style={{ 
+                            color: theme.palette.text.primary,
+                            borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
                     />
@@ -97,7 +136,12 @@ const StoryCreate = ({ open, handleClose }) => {
                     <Button 
                         variant="contained" 
                         fullWidth 
-                        sx={{ bgcolor: '#912f56', borderRadius: 20 }}
+                        sx={{ 
+                            bgcolor: '#912f56', 
+                            borderRadius: 20,
+                            color: 'white',
+                            '&:hover': { bgcolor: '#7a2748' }
+                        }}
                         disabled={!selectedFile}
                         onClick={handleSubmit}
                     >

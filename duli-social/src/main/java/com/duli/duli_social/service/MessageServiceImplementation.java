@@ -38,10 +38,8 @@ public class MessageServiceImplementation implements MessageService {
     @Transactional
     public Message createMessage(User user, Long chatId, CreateMessageRequest req) throws Exception {
         
-        // 1. Tìm đoạn chat
         Chat chat = chatService.findChatById(chatId);
 
-        // 2. Tạo tin nhắn mới
         Message message = new Message();
         message.setChat(chat);
         message.setUser(user);
@@ -50,7 +48,6 @@ public class MessageServiceImplementation implements MessageService {
         message.setVideo(req.getVideo());
         message.setCreatedAt(LocalDateTime.now());
 
-        // 3. Lưu message
         Message savedMessage = messageRepository.save(message);
 
         chat.getMessages().add(savedMessage);

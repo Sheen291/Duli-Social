@@ -9,4 +9,5 @@ import com.duli.duli_social.models.User;
 public interface NotificationService {
     public void createNotification(User recipient, User actor, NotificationType type, String message, Long relatedId);
     public List<NotificationDto> findUsersNotification(Long userId);
+    public void deleteNotification(User recipient, User actor, NotificationType type, Long relatedId);
 }

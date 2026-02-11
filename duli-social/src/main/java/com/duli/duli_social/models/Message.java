@@ -1,6 +1,8 @@
 package com.duli.duli_social.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -19,7 +21,7 @@ public class Message extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @JsonIgnore
+    @JsonIgnoreProperties({"messages", "users"})
     @ManyToOne
     @JoinColumn(name = "chat_id")
     private Chat chat;

@@ -15,7 +15,17 @@ public class ShortVideoDto {
     private List<Long> likedUserIds = new ArrayList<>();
     private int totalComments;
 
+    private List<CommentDto> comments = new ArrayList<>();
+
     public ShortVideoDto() {
+    }
+
+    public List<CommentDto> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<CommentDto> comments) {
+        this.comments = comments;
     }
 
     public Long getId() { return id; }

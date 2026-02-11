@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.duli.duli_social.config.JwtProvider;
 import com.duli.duli_social.dto.UserDto;
+import com.duli.duli_social.models.NotificationType;
 import com.duli.duli_social.models.Post;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.UserRepository;
@@ -41,6 +42,9 @@ public class UserServiceImplementation implements UserService {
 
     @Value("${google.redirect.uri}")
     private String googleRedirectUri;
+
+    @Autowired
+    private NotificationService notificationService;
     
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -53,7 +57,6 @@ public class UserServiceImplementation implements UserService {
         newUser.setLastName(user.getLastName());
         newUser.setPassword(user.getPassword());
         newUser.setGender(user.getGender());
-        // newUser.setId(user.getId()); // Không cần set ID vì Auto Increment
         
         return userRepository.save(newUser);
     }
@@ -74,15 +77,25 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public User followUser(Long reqUserId, Long acceptUserId) throws Exception {
-        User reqUser = findUserById(reqUserId);
-        User acceptUser = findUserById(acceptUserId);
+        User reqUser = findUserById(reqUserId);       
+        User acceptUser = findUserById(acceptUserId); 
 
         if (reqUser.getFollowings().contains(acceptUser) || acceptUser.getFollowers().contains(reqUser)) {
             reqUser.getFollowings().remove(acceptUser);
             acceptUser.getFollowers().remove(reqUser);
+            
+            
         } else {
             reqUser.getFollowings().add(acceptUser);
             acceptUser.getFollowers().add(reqUser);
+            
+            notificationService.createNotification(
+                acceptUser,                  
+                reqUser,                      
+                NotificationType.FOLLOW_USER, 
+                "started following you.",     
+                reqUser.getId()               
+            );
         }
 
         userRepository.save(reqUser);
@@ -108,7 +121,6 @@ public class UserServiceImplementation implements UserService {
         if (user.getBio() != null) {
             oldUser.setBio(user.getBio());
         }
-        // Không update email/password ở đây để đảm bảo bảo mật (nên làm API riêng)
 
         return userRepository.save(oldUser);
     }
@@ -117,7 +129,6 @@ public class UserServiceImplementation implements UserService {
     public List<UserDto> searchUser(String query) {
         List<User> users = userRepository.searchUser(query);
         
-        // Convert List<Entity> -> List<DTO>
         return users.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
@@ -142,12 +153,28 @@ public class UserServiceImplementation implements UserService {
         dto.setEmail(user.getEmail());
         dto.setGender(user.getGender());
         dto.setImage(user.getImage());
+
+        dto.setBio(user.getBio());
         
-        dto.setFollowers(user.getFollowers().stream().map(User::getId).collect(Collectors.toList()));
-        dto.setFollowings(user.getFollowings().stream().map(User::getId).collect(Collectors.toList()));
+        dto.setFollowers(user.getFollowers().stream()
+                .map(this::mapToBasicDto) 
+                .collect(Collectors.toList()));
+                
+        dto.setFollowings(user.getFollowings().stream()
+                .map(this::mapToBasicDto) 
+                .collect(Collectors.toList()));
         if (user.getSavedPost() != null) {
              dto.setSavedPostIds(user.getSavedPost().stream().map(Post::getId).collect(Collectors.toList()));
         }
+        return dto;
+    }
+
+    private UserDto mapToBasicDto(User user) {
+        UserDto dto = new UserDto();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setImage(user.getImage());
         return dto;
     }
 
@@ -189,14 +216,12 @@ public class UserServiceImplementation implements UserService {
             user.setLastName(googleUser.getFamilyName());
             user.setGoogleId(googleUser.getId());
             user.setImage(googleUser.getPicture());
-            user.setGender("unknown"); // Google không trả về giới tính mặc định
+            user.setGender("unknown"); 
             
-            // Tạo mật khẩu ngẫu nhiên để không bị lỗi null password
             user.setPassword(passwordEncoder.encode("GOOGLE_AUTH_" + googleUser.getId())); 
 
             user = userRepository.save(user);
         } else {
-            // User đã tồn tại -> Cập nhật Google ID và Avatar nếu chưa có
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleUser.getId());
             }

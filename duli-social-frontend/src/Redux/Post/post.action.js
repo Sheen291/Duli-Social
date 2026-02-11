@@ -12,6 +12,9 @@ import {
     GET_USER_SAVED_POST_REQUEST, 
     GET_USER_SAVED_POST_SUCCESS, 
     GET_USER_SAVED_POST_FAILURE,
+    GET_POST_BY_ID_FAILURE,
+    GET_POST_BY_ID_REQUEST,
+    GET_POST_BY_ID_SUCCESS
 } from "./post.actionType"
 
 const API_URL = "http://localhost:8080";
@@ -35,20 +38,33 @@ export const createPostAction = (postData) => async(dispatch) => {
     }
 }
 
-export const getAllPostAction = (page = 0, size = 5) => async(dispatch) => {
+export const getAllPostAction = (reqData) => async(dispatch) => {
     dispatch({type: GET_ALL_POST_REQUEST})
     try {
-        const {data} = await axios.get(`${API_URL}/api/posts?page=${page}&size=${size}`, getConfig());
+        // 1. Lấy page và sessionId từ object reqData gửi từ MiddleHome
+        const { page, sessionId } = reqData; 
         
+        // 2. Gọi API Feed mới (lưu ý đường dẫn /api/posts/feed)
+        const {data} = await axios.get(`${API_URL}/api/posts/feed?page=${page}&sessionId=${sessionId}`, getConfig());
+        
+        console.log("get feed posts success: ", data);
+        
+        // 3. Tự tính toán logic "Last Page"
+        // Vì Backend trả về List (mảng) chứ không phải Page object, 
+        const isLastPage = data.length < 5; 
+
         dispatch({
             type: GET_ALL_POST_SUCCESS, 
-            payload: { content: data.content, page: page, last: data.last } 
+            payload: { 
+                content: data,      
+                page: page,         // Trang hiện tại
+                last: isLastPage    // Trạng thái trang cuối
+            } 
         });
         
-        console.log("all post success: ", data);
     } catch (error) {
         dispatch({type: GET_ALL_POST_FAILURE, payload: error})
-        console.log("all post fail: ", error);
+        console.log("get feed posts fail: ", error);
     }
 }
 
@@ -167,6 +183,26 @@ export const getUsersSavedPostsAction = () => async (dispatch) => {
         dispatch({
             type: GET_USER_SAVED_POST_FAILURE,
             payload: error
+        });
+    }
+};
+
+export const findPostByIdAction = (postId) => async (dispatch) => {
+    dispatch({ type: GET_POST_BY_ID_REQUEST });
+    try {
+        const { data } = await axios.get(`${API_URL}/api/posts/${postId}`, getConfig());
+        
+        console.log("get post by id success: ", data);
+        
+        dispatch({ 
+            type: GET_POST_BY_ID_SUCCESS, 
+            payload: data 
+        });
+    } catch (error) {
+        console.log("get post by id fail: ", error);
+        dispatch({ 
+            type: GET_POST_BY_ID_FAILURE, 
+            payload: error 
         });
     }
 };

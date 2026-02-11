@@ -1,10 +1,11 @@
 package com.duli.duli_social.service;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 import com.duli.duli_social.dto.CommentDto;
 import com.duli.duli_social.dto.UserDto;
+import com.duli.duli_social.models.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,9 @@ public class CommentServiceImplementation implements CommentService {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     @Transactional
     public CommentDto createComment(Comment comment, Long postId, Long userId) throws Exception {
@@ -43,8 +47,18 @@ public class CommentServiceImplementation implements CommentService {
         newComment.setUser(user);
         newComment.setContent(comment.getContent());
         newComment.setPost(post);
-        
+        newComment.setCreatedAt(LocalDateTime.now());
+
         Comment savedComment = commentRepository.save(newComment);
+        
+        notificationService.createNotification(
+            post.getUser(),                
+            user,                           
+            NotificationType.COMMENT_POST,  
+            "commented on your post: " + comment.getContent(), 
+            post.getId()                    
+        );
+
         return mapToDto(savedComment);
     }
 
@@ -59,8 +73,11 @@ public class CommentServiceImplementation implements CommentService {
         newComment.setUser(user);
         newComment.setContent(comment.getContent());
         newComment.setShortVideo(video);
+        newComment.setCreatedAt(LocalDateTime.now());
 
         Comment savedComment = commentRepository.save(newComment);
+        
+
         return mapToDto(savedComment);
     }
 
@@ -73,6 +90,17 @@ public class CommentServiceImplementation implements CommentService {
             comment.getLikedUsers().remove(user);
         } else {
             comment.getLikedUsers().add(user);
+
+            Long relatedId = (comment.getPost() != null) ? comment.getPost().getId() : 
+                             (comment.getShortVideo() != null ? comment.getShortVideo().getId() : null);
+
+            notificationService.createNotification(
+                comment.getUser(),               
+                user,                            
+                NotificationType.LIKE_COMMENT,   
+                "liked your comment.",          
+                relatedId                        
+            );
         }
 
         Comment savedComment = commentRepository.save(comment);

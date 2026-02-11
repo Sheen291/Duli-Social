@@ -38,7 +38,12 @@ export const shortVideoReducer = (state = initialState, action) => {
                 loading: false, 
                 shortVideos: action.payload.page === 0 
                     ? action.payload.content 
-                    : [...state.shortVideos, ...action.payload.content],
+                    : [
+                        ...state.shortVideos, 
+                        ...action.payload.content.filter(newVideo => 
+                            !state.shortVideos.some(existingVideo => existingVideo.id === newVideo.id)
+                        )
+                    ],
                 lastPage: action.payload.last
             };
 
@@ -69,10 +74,38 @@ export const shortVideoReducer = (state = initialState, action) => {
             };
 
         case CREATE_SHORT_VIDEO_COMMENT_SUCCESS:
+            
             return {
                 ...state,
                 loading: false,
-                currentVideoComments: [action.payload, ...state.currentVideoComments] 
+                
+                currentVideoComments: [action.payload, ...state.currentVideoComments],
+
+                shortVideos: state.shortVideos.map(video => {
+                    const commentVideoId = action.payload.shortVideoId || action.payload.shortVideo?.id;
+                    
+                    console.log(commentVideoId)
+                    if (video.id === commentVideoId) {
+                        return {
+                            ...video,
+                            totalComments: (video.totalComments || 0) + 1,
+                            comments: [action.payload, ...(video.comments || [])]
+                        };
+                    }
+                    return video;
+                }),
+
+                userShortVideos: state.userShortVideos.map(video => {
+                    const commentVideoId = action.payload.shortVideoId || action.payload.shortVideo?.id;
+                    if (video.id === commentVideoId) {
+                         return {
+                            ...video,
+                            totalComments: video.totalComments + 1,
+                            comments: [action.payload, ...(video.comments || [])]
+                        };
+                    }
+                    return video;
+                })
             };
 
         case CREATE_SHORT_VIDEO_FAILURE:

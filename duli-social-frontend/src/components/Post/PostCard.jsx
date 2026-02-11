@@ -1,5 +1,5 @@
-import { Card, CardHeader, Avatar, IconButton, CardMedia, CardContent, CardActions, Divider } from '@mui/material'
-import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, Avatar, IconButton, CardMedia, CardContent, CardActions, Divider, useTheme } from '@mui/material'; 
+import React, { useEffect, useState, useCallback } from 'react';
 import MoreIcon from '@mui/icons-material/MoreHoriz';
 import Typography from '@mui/material/Typography';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -11,99 +11,115 @@ import CommentIcon from '@mui/icons-material/ChatBubble';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createCommentAction, likePostAction, savePostAction } from '../../Redux/Post/post.action';
+import { debounce } from 'lodash';
+import AvatarWithStory from '../Story/AvatarWithStory';
 
-const PostCard = ({item}) => {
-
+const PostCard = ({ item }) => {
+  const theme = useTheme(); 
   const auth = useSelector(state => state.auth.user);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [viewAllComment, setViewAllComment] = useState(false);
-  
+  const [commentText, setCommentText] = useState("");
+
   const isLikedByAuth = (post) => {
-      if (post?.likedUserIds) {
-          return post.likedUserIds.includes(auth?.id);
-      }
-      if (post?.likedUsers) {
-          return post.likedUsers.some(user => user.id === auth?.id);
-      }
-      return false;
+    if (post?.likedUserIds) {
+      return post.likedUserIds.includes(auth?.id);
+    }
+    if (post?.likedUsers) {
+      return post.likedUsers.some(user => user.id === auth?.id);
+    }
+    return false;
   };
 
   const checkIsSaved = (user, postId) => {
-      if (!user?.savedPostIds) return false;
-      return user.savedPostIds.some(id => id == postId); 
+    if (!user?.savedPostIds) return false;
+    return user.savedPostIds.some(id => id == postId);
   };
 
   const [isLiked, setIsLiked] = useState(isLikedByAuth(item));
-  
-  const [isSaved, setIsSaved] = useState(checkIsSaved(auth, item.id));  
-  
-  const [commentText, setCommentText] = useState("");
+  const [isSaved, setIsSaved] = useState(checkIsSaved(auth, item.id));
+
+  const debouncedLike = useCallback(
+    debounce((postId) => {
+      dispatch(likePostAction(postId));
+    }, 500),
+    [dispatch]
+  );
 
   const handleLikeClick = () => {
-    setIsLiked(!isLiked);
-    dispatch(likePostAction(item.id));
-  }
+    setIsLiked((prev) => !prev);
+    debouncedLike(item.id);
+  };
+
+  const debouncedSave = useCallback(
+    debounce((postId) => {
+      dispatch(savePostAction(postId));
+    }, 500),
+    [dispatch]
+  );
 
   const handleSaveClick = () => {
     setIsSaved((prev) => !prev);
-    dispatch(savePostAction(item.id));
-  }
+    debouncedSave(item.id);
+  };
 
   const handleViewComment = () => {
     setViewAllComment(!viewAllComment);
-  }
+  };
 
   const handlecreateComment = (content) => {
     const reqData = {
       postId: item.id,
-      data: { content }
-    }
+      data: { content },
+    };
     dispatch(createCommentAction(reqData));
-  }
+  };
 
   const handleNavigateToProfile = (userId) => {
     if (userId) {
       navigate(`/profile/${userId}`);
     }
-  }
+  };
 
   useEffect(() => {
     setIsLiked(isLikedByAuth(item));
     setIsSaved(checkIsSaved(auth, item.id));
-
   }, [item, auth?.savedPostIds]);
 
   return (
-    <Card sx={{backgroundColor: 'white', borderRadius: '24px'}}>
+    <Card sx={{ bgcolor: 'background.paper', borderRadius: '24px' }}> 
       <CardHeader
-        avatar={
-          <div onClick={() => handleNavigateToProfile(item.user.id)} className='cursor-pointer'>
-            <Avatar aria-label="recipe" src={item.user.image} sx={{ bgcolor: '#912f56' }} />
-          </div>
-        }
+        avatar={<AvatarWithStory user={item.user} size={40} />}
         action={
           <IconButton aria-label="settings">
             <MoreIcon />
           </IconButton>
         }
         title={
-          <span className='font-semibold cursor-pointer hover:underline'
-                onClick={() => handleNavigateToProfile(item.user.id)}>
+          <span
+            className="font-semibold cursor-pointer hover:underline"
+            onClick={() => handleNavigateToProfile(item.user.id)}
+            style={{ color: theme.palette.text.primary }} 
+          >
             {item.user.firstName + " " + item.user.lastName}
           </span>
         }
-        subheader={new Date(item.createdAt).toLocaleString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric"
-        })}
+        subheader={
+          <Typography variant="body2" color="text.secondary"> 
+            {new Date(item.createdAt).toLocaleString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </Typography>
+        }
       />
 
-      <CardContent className='-mt-5'>
+      <CardContent className="-mt-5">
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {item.caption}
         </Typography>
@@ -115,91 +131,126 @@ const PostCard = ({item}) => {
           height="194"
           image={item.image}
           alt="post image"
-          sx={{ height: 'auto', maxHeight: '500px', width: '100%', objectFit: 'contain', background: '#f0f0f0' }}
+          sx={{
+            height: 'auto',
+            maxHeight: '500px',
+            width: '100%',
+            objectFit: 'contain',
+            bgcolor: 'background.default', 
+          }}
         />
       )}
-      
+
       {item.video && (
-        <div className='w-full'>
-             <video controls className='w-full max-h-[500px] object-contain bg-black' src={item.video} />
+        <div className="w-full">
+          <video
+            controls
+            className="w-full max-h-[500px] object-contain bg-black"
+            src={item.video}
+          />
         </div>
       )}
 
-      <CardActions disableSpacing className='flex justify-between'>
+      <CardActions disableSpacing className="flex justify-between">
         <div>
-            <IconButton aria-label="add to favorites" onClick={handleLikeClick}>
-                {isLiked ? (<FavoriteIcon sx={{color: 'error.main'}}/>) : (<FavoriteBorderIcon />) }
-            </IconButton>
-            
-            <span className='text-sm opacity-60 mr-2'>{item.likedUserIds?.length || 0}</span>
+          <IconButton aria-label="add to favorites" onClick={handleLikeClick}>
+            {isLiked ? (
+              <FavoriteIcon sx={{ color: 'error.main' }} />
+            ) : (
+              <FavoriteBorderIcon sx={{ color: 'text.primary' }} /> 
+            )}
+          </IconButton>
 
-            <IconButton aria-label="comment" onClick={handleViewComment}>
-                <CommentIcon />
-            </IconButton>
+          <span className="text-sm opacity-60 mr-2" style={{ color: theme.palette.text.primary }}>
+            {item.likedUserIds?.length || 0}
+          </span>
 
-            <span className='text-sm opacity-60 mr-2'>{item.totalComments || 0}</span>
+          <IconButton aria-label="comment" onClick={handleViewComment}>
+            <CommentIcon sx={{ color: 'text.primary' }} />
+          </IconButton>
 
-                
-            <IconButton aria-label="share">
-                <ShareIcon />
-            </IconButton>
+          <span className="text-sm opacity-60 mr-2" style={{ color: theme.palette.text.primary }}>
+            {item.totalComments || 0}
+          </span>
+
+          <IconButton aria-label="share">
+            <ShareIcon sx={{ color: 'text.primary' }} />
+          </IconButton>
         </div>
 
         <div>
-            <IconButton aria-label="add to saved list" onClick={handleSaveClick}>
-                {isSaved ? (<SaveIcon sx={{color: '#dee03f'}}/>) : (<SaveBorderIcon />) }
-            </IconButton>
+          <IconButton aria-label="add to saved list" onClick={handleSaveClick}>
+            {isSaved ? (
+              <SaveIcon sx={{ color: '#dee03f' }} />
+            ) : (
+              <SaveBorderIcon sx={{ color: 'text.primary' }} />
+            )}
+          </IconButton>
         </div>
-        
       </CardActions>
 
-      { viewAllComment && <section>
-        <div className='items-center flex space-x-3 m-3'>
-          <Avatar src={auth?.image} />
-          <input className='w-full rounded-full px-5 py-2 outline-none bg-gray-100 border border-transparent focus:border-gray-300' type='text' 
-                placeholder='Write your comment...'
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handlecreateComment(commentText.trim());
-                    setCommentText("");
-                  }
-                }} />
-        </div>
+      {viewAllComment && (
+        <section>
+          <div className="items-center flex space-x-3 m-3">
+            <Avatar src={auth?.image} />
+            <input
+              className="w-full rounded-full px-5 py-2 outline-none border border-transparent focus:border-gray-300"
+              style={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#f3f4f6',
+                color: theme.palette.text.primary, 
+              }}
+              type="text"
+              placeholder="Write your comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handlecreateComment(commentText.trim());
+                  setCommentText("");
+                }
+              }}
+            />
+          </div>
 
-        <Divider />
-        
-        <div className='text-xs m-3 space-y-3 max-h-[300px] overflow-y-auto scrollbar-hide'>
-          { (!item.comments || item.comments.length === 0) ? (
-            <p className='text-center text-gray-400 py-2'>No comments yet</p>
-          ):
-          (item.comments.map((comment) => (
-            <div key={comment.id} className='flex items-start space-x-2'>
-                <Avatar sx={{width: 36, height: 36, bgcolor: '#9ca3a3'}} src={comment.user.image} onClick={() => handleNavigateToProfile(comment.user.id)} className='cursor-pointer'/>
+          <Divider />
 
-                <div className='flex flex-col bg-gray-100 px-4 py-2 rounded-2xl max-w-[85%]'>
-                  <span className='font-semibold text-gray-800 text-sm cursor-pointer hover:underline'
-                        onClick={() => handleNavigateToProfile(comment.user.id)}>
-                    {comment.user?.firstName + " " + comment.user?.lastName}
-                  </span>
-                  <p className='text-gray-700 mt-1 text-[13px]'>
-                    {comment.content}
-                  </p>
+          <div className="text-xs m-3 space-y-3 max-h-[300px] overflow-y-auto scrollbar-hide">
+            {!item.comments || item.comments.length === 0 ? (
+              <p className="text-center py-2" style={{ color: theme.palette.text.secondary }}>
+                No comments yet
+              </p>
+            ) : (
+              item.comments.map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-2">
+                  <div className="mt-1">
+                    <AvatarWithStory user={comment.user} size={36} />
+                  </div>
+
+                  <div
+                    className="flex flex-col px-4 py-2 rounded-2xl max-w-[85%]"
+                    style={{
+                      backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#f3f4f6', 
+                    }}
+                  >
+                    <span
+                      className="font-semibold text-sm cursor-pointer hover:underline"
+                      onClick={() => handleNavigateToProfile(comment.user.id)}
+                      style={{ color: theme.palette.text.primary }}
+                    >
+                      {comment.user?.firstName + " " + comment.user?.lastName}
+                    </span>
+                    <p className="mt-1 text-[13px]" style={{ color: theme.palette.text.primary }}>
+                      {comment.content}
+                    </p>
+                  </div>
                 </div>
-                
-                {/* Nút Like Comment (Tính năng mới thêm) */}
-                {/* <IconButton size='small'><FavoriteBorderIcon fontSize='inherit'/></IconButton> */}
-
-            </div>)
-            )) 
-          }
-        </div>
-
-      </section>}
-
+              ))
+            )}
+          </div>
+        </section>
+      )}
     </Card>
-  )
-}
+  );
+};
 
-export default PostCard
+export default PostCard;

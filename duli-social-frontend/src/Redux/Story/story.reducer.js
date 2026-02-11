@@ -1,14 +1,17 @@
 import { 
     CREATE_STORY_SUCCESS, CREATE_STORY_REQUEST, CREATE_STORY_FAILURE,
     GET_HOME_STORY_SUCCESS, GET_HOME_STORY_REQUEST, GET_HOME_STORY_FAILURE,
-    GET_USER_STORY_SUCCESS, GET_USER_STORY_REQUEST, GET_USER_STORY_FAILURE
+    GET_USER_STORY_SUCCESS, GET_USER_STORY_REQUEST, GET_USER_STORY_FAILURE,
+    OPEN_STORY_VIEW, CLOSE_STORY_VIEW
 } from "./story.actionType";
 
 const initialState = {
     stories: [],      
     userStories: [],  
     loading: false,
-    error: null
+    error: null,
+    storyViewUserId: null,
+    isStoryViewOpen: false,
 };
 
 export const storyReducer = (state = initialState, action) => {
@@ -31,6 +34,20 @@ export const storyReducer = (state = initialState, action) => {
 
         case GET_USER_STORY_SUCCESS:
             return { ...state, loading: false, userStories: action.payload };
+
+        case OPEN_STORY_VIEW:
+            return {
+                ...state,
+                isStoryViewOpen: true,
+                storyViewUserId: action.payload
+            };
+            
+        case CLOSE_STORY_VIEW:
+            return {
+                ...state,
+                isStoryViewOpen: false,
+                storyViewUserId: null
+            };
 
         case CREATE_STORY_FAILURE:
         case GET_HOME_STORY_FAILURE:

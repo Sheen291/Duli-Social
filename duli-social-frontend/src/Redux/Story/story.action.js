@@ -2,7 +2,8 @@ import axios from "axios";
 import { 
     CREATE_STORY_FAILURE, CREATE_STORY_REQUEST, CREATE_STORY_SUCCESS, 
     GET_HOME_STORY_FAILURE, GET_HOME_STORY_REQUEST, GET_HOME_STORY_SUCCESS, 
-    GET_USER_STORY_FAILURE, GET_USER_STORY_REQUEST, GET_USER_STORY_SUCCESS 
+    GET_USER_STORY_FAILURE, GET_USER_STORY_REQUEST, GET_USER_STORY_SUCCESS,
+    OPEN_STORY_VIEW, CLOSE_STORY_VIEW
 } from "./story.actionType";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -47,4 +48,12 @@ export const getUserStoryAction = (userId) => async(dispatch) => {
     } catch (error) {
         dispatch({type: GET_USER_STORY_FAILURE, payload: error});
     }
+};
+
+export const openStoryViewAction = (userId) => {
+    return { type: OPEN_STORY_VIEW, payload: userId };
+};
+
+export const closeStoryViewAction = () => {
+    return { type: CLOSE_STORY_VIEW };
 };

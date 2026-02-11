@@ -1,5 +1,7 @@
 package com.duli.duli_social.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +17,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
     Page<Post> findAllPosts(Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.caption LIKE %:query% ORDER BY p.createdAt DESC")
+    List<Post> searchPost(@Param("query") String query);
+
+    @Query("SELECT p.id FROM Post p")
+    List<Long> findAllIds();
 }

@@ -6,6 +6,7 @@ import HomePage from './pages/Home/HomePage';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileAction } from './Redux/Auth/auth.action';
 import CircularProgress from '@mui/material/CircularProgress';
+import GlobalStoryViewer from './components/Story/GlobalStoryViewer';
 
 function App() {
   const { auth } = useSelector(store => store);
@@ -38,6 +39,8 @@ function App() {
       <Routes>
         <Route path='/*' element={auth.user ? <HomePage /> : <Authentication />}/>
       </Routes>
+
+      <GlobalStoryViewer />
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getNotificationsAction } from '../../Redux/Notification/notification.action';
-import { Avatar, Drawer, Box, Typography, CircularProgress } from '@mui/material';
+import { Avatar, Drawer, Box, Typography, CircularProgress, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { openStoryViewAction } from '../../Redux/Story/story.action';
 
 const NotificationPanel = ({ open, handleClose }) => {
+    const theme = useTheme();
     const dispatch = useDispatch();
     const { notification } = useSelector(store => store);
     const navigate = useNavigate();
@@ -17,8 +19,9 @@ const NotificationPanel = ({ open, handleClose }) => {
 
     const handleNotificationClick = (item) => {
         handleClose();
-        
-        if (item.type === "FOLLOW_USER") {
+        if (item.type === "NEW_STORY") {
+            dispatch(openStoryViewAction(item.actor?.id));
+        } else if (item.type === "FOLLOW_USER") {
             navigate(`/profile/${item.actor?.id}`);
         } else if (item.relatedId) {
             navigate(`/post/${item.relatedId}`);
@@ -29,7 +32,6 @@ const NotificationPanel = ({ open, handleClose }) => {
         const date = new Date(dateString);
         const now = new Date();
         const seconds = Math.floor((now - date) / 1000);
-        
         let interval = seconds / 31536000;
         if (interval > 1) return Math.floor(interval) + "y";
         interval = seconds / 2592000;
@@ -52,63 +54,93 @@ const NotificationPanel = ({ open, handleClose }) => {
             PaperProps={{
                 sx: {
                     width: '380px',
-                    backgroundColor: 'white',
-                    boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
-                    borderRight: '1px solid #dbdbdb',
+                    backgroundColor: 'background.paper',
+                    boxShadow: theme.palette.mode === 'dark' ? '4px 0 24px rgba(0,0,0,0.5)' : '4px 0 24px rgba(0,0,0,0.1)',
+                    borderRight: '1px solid',
+                    borderColor: 'divider',
+                    backgroundImage: 'none', 
                 }
             }}
         >
             <Box sx={{ p: 2 }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, px: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, px: 1, color: 'text.primary' }}>
                     Notifications
                 </Typography>
 
-                <div className='flex flex-col gap-2'>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {notification.loading ? (
-                        <div className='flex justify-center mt-10'><CircularProgress size={30} sx={{color: '#912f56'}}/></div>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+                            <CircularProgress size={30} sx={{ color: '#912f56' }} />
+                        </Box>
                     ) : (
                         notification.notifications?.length > 0 ? (
                             notification.notifications.map((item) => (
-                                <div 
+                                <Box 
                                     key={item.id} 
-                                    className='flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-all'
                                     onClick={() => handleNotificationClick(item)}
+                                    sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'between', 
+                                        p: 1.5, 
+                                        borderRadius: '12px', 
+                                        cursor: 'pointer', 
+                                        transition: 'all 0.2s',
+                                        '&:hover': { bgcolor: 'action.hover' } 
+                                    }}
                                 >
-                                    {/* PHẦN TRÁI: Avatar + Text */}
-                                    <div className='flex items-center gap-3 flex-1 overflow-hidden'>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, overflow: 'hidden' }}>
                                         <Avatar 
                                             src={item.actor?.image} 
-                                            sx={{ width: 44, height: 44, border: '1px solid #ececec' }}
+                                            sx={{ 
+                                                width: 48, 
+                                                height: 48, 
+                                                border: '1px solid',
+                                                borderColor: 'divider' 
+                                            }}
                                         />
                                         
-                                        <div className='flex-1 text-sm leading-tight pr-2'>
-                                            <span className='font-semibold mr-1'>
-                                                {item.actor?.firstName} {item.actor?.lastName}
-                                            </span>
-                                            <span className='text-gray-800 break-words'>
-                                                {item.message}
-                                            </span>
-                                            <span className='text-gray-400 text-xs ml-1'>
-                                                {timeAgo(item.createdAt)}
-                                            </span>
-                                        </div>
-                                    </div>
+                                        <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                                            <Typography variant="body2" sx={{ lineHeight: 1.3, color: 'text.primary' }}>
+                                                <Box component="span" sx={{ fontWeight: 'bold', mr: 0.5 }}>
+                                                    {item.actor?.firstName} {item.actor?.lastName}
+                                                </Box>
+                                                <Box component="span" sx={{ color: 'text.primary' }}>
+                                                    {item.message}
+                                                </Box>
+                                                <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem', ml: 1 }}>
+                                                    {timeAgo(item.createdAt)}
+                                                </Box>
+                                            </Typography>
+                                        </Box>
+                                    </Box>
 
                                     {item.previewImage && (
-                                        <img 
+                                        <Box 
+                                            component="img"
                                             src={item.previewImage} 
-                                            alt="post preview"
-                                            className='w-11 h-11 object-cover rounded ml-1 border border-gray-200 flex-shrink-0' 
+                                            alt="preview"
+                                            sx={{ 
+                                                width: 44, 
+                                                height: 44, 
+                                                objectFit: 'cover', 
+                                                borderRadius: '6px', 
+                                                ml: 1,
+                                                border: '1px solid',
+                                                borderColor: 'divider',
+                                                flexShrink: 0
+                                            }} 
                                         />
                                     )}
-                                    
-                                </div>
+                                </Box>
                             ))
                         ) : (
-                            <div className='text-center text-gray-400 mt-10'>No notifications yet.</div>
+                            <Typography sx={{ textAlign: 'center', color: 'text.secondary', mt: 10 }}>
+                                No notifications yet.
+                            </Typography>
                         )
                     )}
-                </div>
+                </Box>
             </Box>
         </Drawer>
     );

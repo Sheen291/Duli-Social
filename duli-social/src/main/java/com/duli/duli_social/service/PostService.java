@@ -21,4 +21,6 @@ public interface PostService {
     PostDto savePost(Long postId, Long userId) throws Exception;
 
     PostDto likePost(Long postId, Long userId) throws Exception;
+
+    List<Post> searchPost(String query);
 }

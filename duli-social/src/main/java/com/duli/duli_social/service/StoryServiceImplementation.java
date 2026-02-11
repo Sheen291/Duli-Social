@@ -2,6 +2,7 @@ package com.duli.duli_social.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.duli.duli_social.dto.StoryDto;
 import com.duli.duli_social.dto.UserDto;
+import com.duli.duli_social.models.NotificationType;
 import com.duli.duli_social.models.Story;
 import com.duli.duli_social.models.User;
 import com.duli.duli_social.repository.StoryRepository;
@@ -22,14 +24,31 @@ public class StoryServiceImplementation implements StoryService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     public StoryDto createStory(Story story, User user) {
         Story newStory = new Story();
         newStory.setCaption(story.getCaption());
         newStory.setImage(story.getImage());
         newStory.setUser(user);
+        newStory.setCreatedAt(LocalDateTime.now());
         
         Story savedStory = storyRepository.save(newStory);
+
+        Set<User> followers = user.getFollowers();
+        
+        for (User follower : followers) {
+            notificationService.createNotification(
+                follower,                   
+                user,                       
+                NotificationType.NEW_STORY, 
+                "added to their story.",    
+                savedStory.getId()          
+            );
+        }
+
         return mapToDto(savedStory);
     }
 

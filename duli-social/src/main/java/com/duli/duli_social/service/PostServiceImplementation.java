@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import com.duli.duli_social.dto.CommentDto;
 import com.duli.duli_social.dto.PostDto;
 import com.duli.duli_social.dto.UserDto;
-import com.duli.duli_social.models.NotificationType; // 1. Import Enum
+import com.duli.duli_social.models.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,7 +33,6 @@ public class PostServiceImplementation implements PostService {
     @Autowired
     UserService userService;
     
-    // 2. Inject NotificationService
     @Autowired
     NotificationService notificationService;
 
@@ -99,26 +98,22 @@ public class PostServiceImplementation implements PostService {
         return mapToDto(post);
     }
 
-    // --- 3. Cập nhật hàm Like Post ---
     @Override
     public PostDto likePost(Long postId, Long userId) throws Exception {
         Post post = findPostEntityById(postId);
         User user = userService.findUserById(userId);
 
         if (post.getLikedUsers().contains(user)) {
-            // Nếu đã like rồi -> Bấm lần nữa là UNLIKE -> Không thông báo
             post.getLikedUsers().remove(user);
         } else {
-            // Nếu chưa like -> LIKE -> Tạo thông báo
             post.getLikedUsers().add(user);
 
-            // GỌI NOTIFICATION SERVICE
             notificationService.createNotification(
-                post.getUser(),              // Người nhận: Chủ bài viết
-                user,                        // Người gây ra: Người đang bấm like
-                NotificationType.LIKE_POST,  // Loại thông báo
-                "liked your post",           // Nội dung
-                post.getId()                 // Related ID: ID bài viết
+                post.getUser(),              
+                user,                        
+                NotificationType.LIKE_POST,  
+                "liked your post",           
+                post.getId()                 
             );
         }
         
@@ -182,5 +177,10 @@ public class PostServiceImplementation implements PostService {
         }
         
         return dto;
+    }
+
+    @Override
+    public List<Post> searchPost(String query) {
+        return postRepository.searchPost(query);
     }
 }

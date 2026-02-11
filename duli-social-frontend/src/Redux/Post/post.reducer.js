@@ -11,6 +11,9 @@ import {
     GET_USER_SAVED_POST_REQUEST, 
     GET_USER_SAVED_POST_SUCCESS, 
     GET_USER_SAVED_POST_FAILURE,
+    GET_POST_BY_ID_FAILURE,
+    GET_POST_BY_ID_REQUEST,
+    GET_POST_BY_ID_SUCCESS
 } from "./post.actionType"
 
 const initialState = {
@@ -29,12 +32,13 @@ export const postReducer = (state = initialState, action) => {
     switch (action.type) {
         case CREATE_POST_REQUEST:
         case GET_ALL_POST_REQUEST:
-        case LIKE_POST_REQUEST:
+        // case LIKE_POST_REQUEST:
         case CREATE_COMMENT_REQUEST:
         case LIKE_COMMENT_REQUEST:
-        case SAVE_POST_REQUEST:
+        // case SAVE_POST_REQUEST:
         case DELETE_POST_REQUEST:
         case GET_SINGLE_POST_REQUEST:
+        case GET_POST_BY_ID_REQUEST:
             return { ...state, error: null, loading: true }
 
         case GET_USER_SAVED_POST_REQUEST:
@@ -67,7 +71,12 @@ export const postReducer = (state = initialState, action) => {
                 loading: false, 
                 posts: action.payload.page === 0 
                     ? action.payload.content 
-                    : [...state.posts, ...action.payload.content],
+                    : [
+                        ...state.posts, 
+                        ...action.payload.content.filter(newItem => 
+                            !state.posts.some(existingItem => existingItem.id === newItem.id)
+                        )
+                    ],
                 
                 commentCreated: false,
                 lastPage: action.payload.last
@@ -88,10 +97,22 @@ export const postReducer = (state = initialState, action) => {
         case SAVE_POST_SUCCESS:
             return {
                 ...state,
-                error: null,
                 loading: false,
-                posts: state.posts.map((item) => item.id === action.payload.id ? action.payload : item),
-                profilePosts: state.profilePosts.map((item) => item.id === action.payload.id ? action.payload : item)
+                error: null,
+                
+                posts: state.posts.map((item) => 
+                    item.id === action.payload.id ? action.payload : item
+                ),
+
+                profilePosts: state.profilePosts.map((item) => 
+                    item.id === action.payload.id ? action.payload : item
+                ),
+
+                savedPosts: state.savedPosts.map((item) => 
+                    item.id === action.payload.id ? action.payload : item
+                ),
+
+                post: state.post?.id === action.payload.id ? action.payload : state.post
             }
         
         case DELETE_POST_SUCCESS:
@@ -112,73 +133,81 @@ export const postReducer = (state = initialState, action) => {
             }
 
         case CREATE_COMMENT_SUCCESS:            
-            const updatedPostsComment = state.posts.map((post) => {
-                 if (post.id === action.payload.postId) { 
-                    return {
-                        ...post,
-                        comments: [...(post.comments || []), action.payload],
-                        totalComments: (post.totalComments || 0) + 1 
-                    };
-                }
-                return post;
-            });
-
-            const updatedProfilePostsComment = state.profilePosts.map((post) => {
-                if (post.id === action.payload.postId) {
-                    return {
-                        ...post,
-                        comments: [...(post.comments || []), action.payload],
-                        totalComments: (post.totalComments || 0) + 1
-                    };
-                }
-                return post;
-            });
+            const updateCommentForList = (list) => {
+                return list.map((post) => {
+                    if (post.id === action.payload.postId) {
+                        return {
+                            ...post,
+                            comments: [...(post.comments || []), action.payload],
+                            totalComments: (post.totalComments || 0) + 1
+                        };
+                    }
+                    return post;
+                });
+            };
 
             return {
                 ...state,
-                comments: [action.payload, ...state.comments],
-                posts: updatedPostsComment,
-                profilePosts: updatedProfilePostsComment,
                 loading: false,
                 error: null,
                 commentCreated: true,
+                comments: [action.payload, ...state.comments],
+                
+                posts: updateCommentForList(state.posts),
+                profilePosts: updateCommentForList(state.profilePosts),
+                savedPosts: updateCommentForList(state.savedPosts), // <-- Thêm cái này
+                
+                post: state.post?.id === action.payload.postId 
+                    ? {
+                        ...state.post,
+                        comments: [...(state.post.comments || []), action.payload],
+                        totalComments: (state.post.totalComments || 0) + 1
+                      }
+                    : state.post
             };
-
-        case LIKE_COMMENT_SUCCESS:
-            const updatedPostsLikeComment = state.posts.map(post => {
-                if (post.comments && post.comments.some(c => c.id === action.payload.id)) {
-                    return {
-                        ...post,
-                        comments: post.comments.map(comment => 
-                            comment.id === action.payload.id ? action.payload : comment
-                        )
-                    };
-                }
-                return post;
-            });
-
-            const updatedProfilePostsLikeComment = state.profilePosts.map(post => {
-                 if (post.comments && post.comments.some(c => c.id === action.payload.id)) {
-                    return {
-                        ...post,
-                        comments: post.comments.map(comment => 
-                            comment.id === action.payload.id ? action.payload : comment
-                        )
-                    };
-                }
-                return post;
-            });
-
+        
+        case GET_POST_BY_ID_SUCCESS:
             return {
                 ...state,
+                loading: false,
+                error: null,
+                post: action.payload
+            }
+
+        case LIKE_COMMENT_SUCCESS:
+            const updateLikeCommentForList = (list) => {
+                 return list.map(post => {
+                    if (post.comments && post.comments.some(c => c.id === action.payload.id)) {
+                        return {
+                            ...post,
+                            comments: post.comments.map(comment => 
+                                comment.id === action.payload.id ? action.payload : comment
+                            )
+                        };
+                    }
+                    return post;
+                });
+             };
+
+             return {
+                ...state,
+                loading: false,
+                error: null,
                 comments: state.comments.map(comment => 
                     comment.id === action.payload.id ? action.payload : comment
                 ),
-                posts: updatedPostsLikeComment,
-                profilePosts: updatedProfilePostsLikeComment,
-                loading: false,
-                error: null
-            };
+                posts: updateLikeCommentForList(state.posts),
+                profilePosts: updateLikeCommentForList(state.profilePosts),
+                savedPosts: updateLikeCommentForList(state.savedPosts), // <-- Thêm
+                post: (state.post && state.post.comments) // <-- Thêm update cho PostDetail
+                    ? {
+                        ...state.post,
+                        comments: state.post.comments.map(comment => 
+                            comment.id === action.payload.id ? action.payload : comment
+                        )
+                      }
+                    : state.post
+             };
 
         case GET_USER_SAVED_POST_FAILURE:
             return { ...state, loading: false, error: action.payload };

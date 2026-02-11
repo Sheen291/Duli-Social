@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { Avatar, Button, Box, Tab, CircularProgress } from '@mui/material'
+// 1. Thêm import useTheme
+import { Avatar, Button, Box, Tab, CircularProgress, useTheme } from '@mui/material'
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
@@ -11,59 +12,73 @@ import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlin
 import AccountBoxOutlinedIcon from '@mui/icons-material/AccountBoxOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 
-// 1. Import thêm action Follow và GetSavedPosts
 import { getUserByIdAction, followUserAction, getProfileAction } from '../../Redux/Auth/auth.action';
 import { getPostByUserIdAction, getUsersSavedPostsAction } from '../../Redux/Post/post.action';
 
 import PostCard from '../Post/PostCard';
 import UpdateProfile from './UpdateProfile';
 
+import AvatarWithStory from '../Story/AvatarWithStory';
+import { Helmet } from 'react-helmet-async';
+import { getUserShortVideoAction } from '../../Redux/ShortVideo/shortVideo.action';
+import UserListModal from './UserListModal';
+import UserReelCard from '../Reels/UserReelCard';
+import UserReelViewer from '../Reels/UserReelViewer';
+
 const ProfileUser = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { auth, post } = useSelector(store => store);
+  const { auth, post, shortVideo } = useSelector(store => store);
+  
+  const theme = useTheme();
 
   const [value, setValue] = useState('posts');
   const [openUpdateUser, setOpenUpdateUser] = useState(false);
+  const [openFollowersModal, setOpenFollowersModal] = useState(false);
+  const [openFollowingsModal, setOpenFollowingsModal] = useState(false);
+
+  const [openReelModal, setOpenReelModal] = useState(false);
+  const [selectedReel, setSelectedReel] = useState(null);
+
+
+  const handleOpenReel = (reel) => {
+      setSelectedReel(reel);
+      setOpenReelModal(true);
+  };
+
+  const handleCloseReel = () => {
+      setOpenReelModal(false);
+      setSelectedReel(null);
+  };
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
 
-  // Xác định ID và quyền sở hữu profile
   const userId = id ? id : auth.user?.id;
   const isMyProfile = !id || Number(id) === auth.user?.id; 
 
-  const user = id ? auth.findUser : auth.user;
+  const user = isMyProfile ? auth.user : auth.findUser;
 
-  // Load dữ liệu
+  console.log("user: ", user);
+  const isCorrectUserLoaded = !!user && Number(user.id) === Number(userId);  
+
+  const pageTitle = isCorrectUserLoaded 
+      ? `${user.firstName} ${user.lastName}` 
+      : "Profile";
+
   useEffect(() => {
     if (userId) {
       dispatch(getUserByIdAction(userId));
-      dispatch(getPostByUserIdAction(userId)); // Lấy bài viết do user tạo
+      dispatch(getPostByUserIdAction(userId));
+      dispatch(getUserShortVideoAction(userId));
     }
     
-    // Nếu là profile của mình thì mới load Saved Posts (thường là private)
     if (isMyProfile) {
-        // Đảm bảo bạn đã có action này trong redux
         dispatch(getUsersSavedPostsAction()); 
     }
 
   }, [userId, dispatch, isMyProfile]);
-
-  const handleOpenUpdateUser = () => setOpenUpdateUser(true);
-  const handleClose = () => setOpenUpdateUser(false);
-
-  const handleFollowUser = async () => {
-    if (userId) {
-        await dispatch(followUserAction(userId));
-
-        setTimeout(() => dispatch(getUserByIdAction(userId)), 100);
-
-        const jwt = localStorage.getItem("jwt");
-        if(jwt) setTimeout(() => dispatch(getProfileAction(jwt)), 100);
-    }
-  };
 
   useEffect(() => {
     if (!isMyProfile && value === 'saveds') {
@@ -72,6 +87,35 @@ const ProfileUser = () => {
   }, [isMyProfile, value]);
 
 
+  if (!isMyProfile && !user) {
+      return (
+          <div className='flex justify-center items-center h-[50vh]'>
+              <CircularProgress sx={{color: '#912f56'}} />
+          </div>
+      );
+  }
+
+  if (isMyProfile && !auth.user) {
+      return (
+          <div className='flex justify-center items-center h-[50vh]'>
+              <p>Please login to view your profile</p>
+          </div>
+      );
+  }
+
+
+  const handleOpenUpdateUser = () => setOpenUpdateUser(true);
+  const handleClose = () => setOpenUpdateUser(false);
+
+  const handleFollowUser = async () => {
+    if (userId) {
+        await dispatch(followUserAction(userId));
+        setTimeout(() => dispatch(getUserByIdAction(userId)), 100);
+        const jwt = localStorage.getItem("jwt");
+        if(jwt) setTimeout(() => dispatch(getProfileAction(jwt)), 100);
+    }
+  };
+
   const isFollowed = auth.user?.followings?.some(u => {
        if (typeof u === 'object' && u !== null) {
            return u.id == user?.id;
@@ -79,156 +123,218 @@ const ProfileUser = () => {
        return u == user?.id;
   });
 
-  console.log("Check Follow:", { 
-      myId: auth.user?.id, 
-      targetId: user?.id, 
-      isFollowed: isFollowed, 
-      myFollowings: auth.user?.followings 
-  });
-
   return (
-    <div className='w-full flex justify-center h-fit '>
-      <div className='w-full lg:w-[70%] bg-white rounded-lg py-10 px-5 border border-gray-300'>
-        <div className='flex flex-col md:flex-row items-center md:items-start gap-10 mb-10'>
-          
-          <div className='flex-shrink-0'>
-            <Avatar 
-              src={user?.image} 
-              alt="avatar"
-              sx={{ width: { xs: 100, md: 150 }, height: { xs: 100, md: 150 } }}
-              className='border border-gray-200'
-            />
-          </div>
+    <div className='w-full flex justify-center h-fit min-w-[300px]'>
+      <Helmet>
+        <title>{pageTitle} | Duli Social</title>
+      </Helmet>
 
-          <div className='flex flex-col gap-5 w-full'>
+      {!isCorrectUserLoaded ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', width: '100%' }}>
+              <CircularProgress sx={{color: '#912f56'}} />
+          </Box>
+      ) : (
+        <Box sx={{
+            width: { xs: '100%', lg: '70%' },
+            bgcolor: 'background.paper', 
+            color: 'text.primary',       
+            borderRadius: '12px',
+            py: 5,
+            px: 3,
+            border: 1,
+            borderColor: 'divider'      
+        }}>
+          <div className='flex flex-col md:flex-row items-center md:items-start gap-10 mb-10'>
             
-            <div className='flex flex-col md:flex-row items-center gap-5'>
-              <h1 className='text-xl font-normal'>
-                {user?.firstName + " " + user?.lastName}
-              </h1>
+            <div className='flex-shrink-0'>
+              <AvatarWithStory 
+                  user={user} 
+                  size={150}
+              />
+            </div>
+
+            <div className='flex flex-col gap-5 w-full'>
               
-              {isMyProfile ? (
-                <div className='flex gap-2'>
-                    <Button 
-                        size='small' 
-                        sx={{ bgcolor: '#efefef', color: 'black', textTransform: 'none', borderRadius: '8px', '&:hover': { bgcolor: '#dbdbdb' } }} 
-                        onClick={handleOpenUpdateUser}
-                    >
-                        Edit profile
-                    </Button>
-                    <Button 
-                        size='small' 
-                        sx={{ bgcolor: '#efefef', color: 'black', textTransform: 'none', borderRadius: '8px', '&:hover': { bgcolor: '#dbdbdb' } }} 
-                    >
-                        View archive
-                    </Button>
-                    <div className='flex items-center cursor-pointer'>
-                        <SettingsIcon />
-                    </div>
-                </div>
-              ) : (
-                // 4. Button Follow / Unfollow
-                <Button 
-                    variant='contained' 
-                    size='small' 
-                    onClick={handleFollowUser}
-                    sx={{
-                        bgcolor: isFollowed ? '#efefef' : '#912f56', 
-                        color: isFollowed ? 'black' : 'white',
-                        textTransform: 'none', 
-                        borderRadius: '8px',
-                        '&:hover': { bgcolor: isFollowed ? '#dbdbdb' : '#7a2748' }
-                    }}
-                >
-                    {isFollowed ? "Unfollow" : "Follow"}
-                </Button>
-              )}
-            </div>
-
-            <div className='flex justify-center md:justify-start gap-8'>
-              <div className='flex gap-1'><span className='font-semibold'>{post.profilePosts?.length || 0}</span> posts</div>
-              <div className='flex gap-1'><span className='font-semibold'>{user?.followers?.length || 0}</span> followers</div>
-              <div className='flex gap-1'><span className='font-semibold'>{user?.followings?.length || 0}</span> following</div>
-            </div>
-
-            <div className='text-center md:text-left'>
-              <p className='text-sm'>{user?.bio || "No bio yet."}</p>
-            </div>
-
-          </div>
-        </div>
-
-        <section>
-          <TabContext value={value}>
-            <Box sx={{ borderTop: 1, borderColor: '#dbdbdb', display: 'flex', justifyContent: 'center' }}>
-              <TabList onChange={handleChange} aria-label="profile tabs" 
-                TabIndicatorProps={{ style: { backgroundColor: '#912f56' } }}
-                sx={{
-                    '& .MuiTab-root': { color: '#8e8e8e', fontSize: '12px', minHeight: '50px' },
-                    '& .Mui-selected': { color: '#912f56 !important' },
-                }}
-              >
-                <Tab icon={<GridOnOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="POSTS" value="posts" />
+              <div className='flex flex-col md:flex-row items-center gap-5'>
+                <h1 className='text-xl font-normal'>
+                  {user?.firstName + " " + user?.lastName}
+                </h1>
                 
-                {/* Chỉ hiện tab SAVED nếu là profile của mình */}
-                {isMyProfile && (
-                    <Tab icon={<BookmarkBorderOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="SAVED" value="saveds" />
-                )}
-                
-                <Tab icon={<AccountBoxOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="TAGGED" value="taggeds" />
-              </TabList>
-            </Box>
-
-            {/* TAB POSTS */}
-            <TabPanel value="posts" sx={{padding: '20px 0', width: '100%'}}>
-              <div className='flex flex-col space-y-5 w-full'>
-                {post.loading ? (
-                  <div className='flex justify-center py-5'><CircularProgress /></div>
+                {isMyProfile ? (
+                  <div className='flex gap-2'>
+                      <Button 
+                          size='small' 
+                          sx={{ 
+                              bgcolor: theme.palette.mode === 'dark' ? '#333' : '#efefef', 
+                              color: theme.palette.text.primary, 
+                              textTransform: 'none', 
+                              borderRadius: '8px', 
+                              '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#444' : '#dbdbdb' } 
+                          }} 
+                          onClick={handleOpenUpdateUser}
+                      >
+                          Edit profile
+                      </Button>
+                      <Button 
+                          size='small' 
+                          sx={{ 
+                              bgcolor: theme.palette.mode === 'dark' ? '#333' : '#efefef',
+                              color: theme.palette.text.primary, 
+                              textTransform: 'none', 
+                              borderRadius: '8px', 
+                              '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#444' : '#dbdbdb' } 
+                          }} 
+                      >
+                          View archive
+                      </Button>
+                      <div className='flex items-center cursor-pointer'>
+                          <SettingsIcon sx={{ color: 'text.primary' }} />
+                      </div>
+                  </div>
                 ) : (
-                  post.profilePosts?.length > 0 ? (
-                    post.profilePosts.map((item) => (
-                        <div key={item.id} className='w-full shadow-sm border rounded-[24px] shadow-[#912f56]'>
-                             <PostCard item={item}/>
-                        </div>
-                    ))
-                   ) : (
-                    <div className='text-center py-10 text-gray-500'>No posts yet.</div>
-                   )
+                  <Button 
+                      variant='contained' 
+                      size='small' 
+                      onClick={handleFollowUser}
+                      sx={{
+                          bgcolor: isFollowed 
+                              ? (theme.palette.mode === 'dark' ? '#333' : '#efefef') 
+                              : '#912f56',
+                          color: isFollowed ? theme.palette.text.primary : 'white',
+                          textTransform: 'none', 
+                          borderRadius: '8px',
+                          '&:hover': { 
+                              bgcolor: isFollowed 
+                                  ? (theme.palette.mode === 'dark' ? '#444' : '#dbdbdb')
+                                  : '#7a2748' 
+                          }
+                      }}
+                  >
+                      {isFollowed ? "Unfollow" : "Follow"}
+                  </Button>
                 )}
               </div>
-            </TabPanel>
 
-            {/* TAB SAVED */}
-            <TabPanel value="saveds" sx={{padding: '20px 0'}}>
+              <div className='flex justify-center md:justify-start gap-8'>
+                <div className='flex gap-1'><span className='font-semibold'>{post.profilePosts?.length || 0}</span> posts</div>
+                <div 
+                  className='flex gap-1 cursor-pointer hover:underline decoration-1' 
+                  onClick={() => setOpenFollowersModal(true)}
+                >
+                  <span className='font-semibold'>{user?.followers?.length || 0}</span> followers
+                </div>
+                <div 
+                  className='flex gap-1 cursor-pointer hover:underline decoration-1'
+                  onClick={() => setOpenFollowingsModal(true)}
+                >
+                  <span className='font-semibold'>{user?.followings?.length || 0}</span> following
+                </div>
+              </div>
+
+              <div className='text-center md:text-left'>
+                <p className='text-sm'>{user?.bio || "No bio yet."}</p>
+              </div>
+
+            </div>
+          </div>
+
+          <section>
+            <TabContext value={value}>
+              <Box sx={{ borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
+                <TabList onChange={handleChange} aria-label="profile tabs" 
+                  TabIndicatorProps={{ style: { backgroundColor: '#912f56' } }}
+                  sx={{
+                      '& .MuiTab-root': { color: 'text.secondary', fontSize: '12px', minHeight: '50px' },
+                      '& .Mui-selected': { color: '#912f56 !important' },
+                  }}
+                >
+                  <Tab icon={<GridOnOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="POSTS" value="posts" />
+                  {isMyProfile && (
+                      <Tab icon={<BookmarkBorderOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="SAVED" value="saveds" />
+                  )}
+                  <Tab icon={<AccountBoxOutlinedIcon sx={{fontSize: 20}}/>} iconPosition="start" label="REELS" value="reels" />
+                </TabList>
+              </Box>
+
+              {/* TAB POSTS */}
+              <TabPanel value="posts" sx={{padding: '20px 0', width: '100%'}}>
                 <div className='flex flex-col space-y-5 w-full'>
-                   {/* 6. Render Saved Posts */}
-                   {post.savedPosts?.length > 0 ? (
-                        post.savedPosts.map((item) => (
-                            <div key={item.id} className='w-full shadow-sm border rounded-[24px] shadow-[#912f56]'>
-                                <PostCard item={item}/>
-                            </div>
-                        ))
-                   ) : (
-                        <div className='text-gray-400 p-10 text-center'>No saved posts</div>
-                   )}
+                  {post.loading ? (
+                    <div className='flex justify-center py-5'><CircularProgress /></div>
+                  ) : (
+                    post.profilePosts?.length > 0 ? (
+                      post.profilePosts.map((item) => (
+                          <div key={item.id} className='w-full'>
+                              <PostCard item={item}/>
+                          </div>
+                      ))
+                    ) : (
+                      <div className='text-center py-10 text-gray-500'>No posts yet.</div>
+                    )
+                  )}
                 </div>
-            </TabPanel>
+              </TabPanel>
 
-            {/* TAB TAGGED */}
-            <TabPanel value="taggeds" sx={{padding: '20px 0'}}>
-                <div className='flex flex-col space-y-5 items-center w-full'>
-                   <div className='p-10 text-gray-400'>No tagged posts</div>
-                </div>
-            </TabPanel>
+              {/* TAB SAVED */}
+              <TabPanel value="saveds" sx={{padding: '20px 0'}}>
+                  <div className='flex flex-col space-y-5 w-full'>
+                    {post.savedPosts?.length > 0 ? (
+                          post.savedPosts.map((item) => (
+                              <div key={item.id} className='w-full'>
+                                  <PostCard item={item}/>
+                              </div>
+                          ))
+                    ) : (
+                          <div className='text-gray-400 p-10 text-center'>No saved posts</div>
+                    )}
+                  </div>
+              </TabPanel>
 
-          </TabContext>
-        </section>
+              {/* TAB TAGGED */}
+              <TabPanel value="reels" sx={{padding: '20px 0'}}>
+                  <div className='grid grid-cols-3 md:grid-cols-4 gap-2'>
+                    {shortVideo.userShortVideos && shortVideo.userShortVideos.length > 0 ? (
+                          shortVideo.userShortVideos.map((item) => (
+                              <UserReelCard 
+                                  key={item.id} 
+                                  item={item}
+                                  onClick={() => handleOpenReel(item)} 
+                              />
+                          ))
+                    ) : (
+                          <div className='col-span-full text-center py-10 text-gray-400'>
+                              No reels posted yet.
+                          </div>
+                    )}
+                  </div>
+              </TabPanel>
 
-        <section>
-          <UpdateProfile open={openUpdateUser} handleClose={handleClose}/>
-        </section>
+            </TabContext>
+          </section>
 
-      </div>
+          <section>
+            <UpdateProfile open={openUpdateUser} handleClose={handleClose}/>
+            <UserListModal 
+                open={openFollowersModal}
+                handleClose={() => setOpenFollowersModal(false)}
+                title="Followers"
+                users={user?.followers || []}
+            />
+            <UserListModal 
+                open={openFollowingsModal}
+                handleClose={() => setOpenFollowingsModal(false)}
+                title="Following"
+                users={user?.followings || []}
+            />
+            <UserReelViewer 
+              open={openReelModal} 
+              handleClose={handleCloseReel} 
+              reel={selectedReel}
+            />
+          </section>
+
+        </Box>
+      )}
     </div>
   )
 }

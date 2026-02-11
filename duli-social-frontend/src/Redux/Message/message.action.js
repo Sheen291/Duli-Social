@@ -1,4 +1,3 @@
-// 1. Thêm các import còn thiếu cho getAllMessages
 import { 
     CREATE_CHAT_REQUEST, CREATE_CHAT_SUCCESS, CREATE_CHAT_FAILURE,
     CREATE_MESSAGE_REQUEST, CREATE_MESSAGE_SUCCESS, CREATE_MESSAGE_FAILURE, 
@@ -25,11 +24,12 @@ export const createMessage = (reqData) => async(dispatch) => {
         const { data } = await axios.post(`${API_URL}/api/messages/chat/${chatId}`, message, config);
         console.log('create message success', data);
 
-        // --- MỞ COMMENT ĐỂ TEST UI TRƯỚC (Optimistic UI) ---
-        // Khi Socket chạy ngon thì có thể comment lại để tránh duplicate nếu reducer không handle trùng
         dispatch({
             type: CREATE_MESSAGE_SUCCESS, 
-            payload: data 
+            payload: {
+                message: data,
+                currentChatId: reqData.chatId
+            }
         });
 
     } catch (error) {

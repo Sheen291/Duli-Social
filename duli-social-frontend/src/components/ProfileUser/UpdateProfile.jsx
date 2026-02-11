@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Modal from '@mui/material/Modal';
-import { Avatar, Fade, Backdrop, CircularProgress, IconButton, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
+import { 
+  Box, Button, Typography, Modal, Avatar, Fade, Backdrop, 
+  CircularProgress, IconButton, TextField, Radio, RadioGroup, 
+  FormControlLabel, FormControl, FormLabel, useTheme 
+} from '@mui/material'; 
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import { updateProfileAction } from '../../Redux/Auth/auth.action';
@@ -16,29 +16,29 @@ const style = {
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: 400,
+  width: { xs: '90%', sm: 400 },
   bgcolor: 'background.paper',
   borderRadius: '12px',
   boxShadow: 24,
   p: 4,
-  bgcolor: '#eaf2ef'
+  outline: 'none',
 };
 
 export default function UpdateProfile({ open, handleClose }) {
+  const theme = useTheme(); 
   const dispatch = useDispatch();
   const { auth } = useSelector(store => store);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
 
-  // 1. Cập nhật useEffect: Load thêm Bio cũ
   useEffect(() => {
     if (open && auth.user) {
       formik.setValues({
         firstName: auth.user.firstName || "",
         lastName: auth.user.lastName || "",
         gender: auth.user.gender || "male",
-        bio: auth.user.bio || "" // <--- THÊM DÒNG NÀY
+        bio: auth.user.bio || ""
       });
       setImagePreview(auth.user.image || "");
       setSelectedImage(null);
@@ -53,31 +53,16 @@ export default function UpdateProfile({ open, handleClose }) {
     }
   }
 
-  // 2. Cập nhật Formik: Thêm trường bio
   const formik = useFormik({
-    initialValues: {
-      firstName: "",
-      lastName: "",
-      gender: "",
-      bio: "" // <--- THÊM DÒNG NÀY
-    },
+    initialValues: { firstName: "", lastName: "", gender: "", bio: "" },
     onSubmit: async (values) => {
       setLoading(true);
       try {
         let imageUrl = auth.user.image;
-
         if (selectedImage) {
           imageUrl = await cloudUpload(selectedImage, "image");
         }
-
-        const reqData = {
-          firstName: values.firstName,
-          lastName: values.lastName,
-          gender: values.gender,
-          bio: values.bio, // <--- THÊM DÒNG NÀY
-          image: imageUrl
-        };
-
+        const reqData = { ...values, image: imageUrl };
         await dispatch(updateProfileAction(reqData));
         handleClose();
       } catch (error) {
@@ -86,112 +71,98 @@ export default function UpdateProfile({ open, handleClose }) {
         setLoading(false);
       }
     }
-  })
+  });
 
   return (
     <Modal
       open={open}
       onClose={handleClose}
-      aria-labelledby="modal-modal-title"
-      aria-describedby="modal-modal-description"
-      sx={{backdropFilter: 'blur(2px)'}}
+      closeAfterTransition
+      slots={{ backdrop: Backdrop }}
+      slotProps={{ backdrop: { timeout: 500, sx: { backdropFilter: 'blur(2px)' } } }}
     >
       <Fade in={open}>
+        <Box sx={style} component="form" onSubmit={formik.handleSubmit}>
+          {/* HEADER */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" fontWeight={700} color="text.primary">
+              Edit Profile
+            </Typography>
+            <IconButton onClick={handleClose} sx={{ color: 'text.secondary' }}>
+              <CloseButton />
+            </IconButton>
+          </Box>
 
-      <Box sx={style} component="form" onSubmit={formik.handleSubmit}>
-        <div className='flex items-center justify-between w-full'>
-          <Typography variant="h6" component="h2" sx={{fontWeight: 700}}>
-            Edit Profile
-          </Typography>
-          <IconButton onClick={handleClose} 
-                    sx={{color: '#912f56', transition: 'all 0.2s ease'}}>
-            <CloseButton />
-          </IconButton>
-        </div>
+          {/* AVATAR UPLOAD */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+            <Box className="relative group">
+              <Avatar
+                sx={{ 
+                  width: 110, height: 110, 
+                  border: '2px solid', 
+                  borderColor: 'divider' 
+                }}
+                src={imagePreview || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+              />
+              <label htmlFor="upload-avatar" className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity duration-300">
+                <PhotoCamera sx={{ color: 'white', fontSize: 32 }} />
+              </label>
+              <input accept="image/*" id="upload-avatar" type="file" hidden onChange={handleImageChange} />
+            </Box>
+          </Box>
 
-        <div className='flex justify-center mb-8'>
-               <div className="relative group">
-                  <Avatar
-                    sx={{ width: 120, height: 120, border: '1px solid #e0e0e0' }}
-                    src={imagePreview || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
-                  />
-                  
-                  <label htmlFor="upload-avatar" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity duration-300">
-                      <PhotoCamera sx={{ color: 'white', fontSize: 40 }} />
-                  </label>
-                  
-                  <input accept="image/*" id="upload-avatar" 
-                    type="file" hidden onChange={handleImageChange}
-                  />
-               </div>
-          </div>
-
-        <div className='space-y-5'>
-            <div className='flex gap-5'>
-                <TextField
-                fullWidth
-                id="firstName"
-                name="firstName"
-                label="First Name"
-                value={formik.values.firstName}
-                onChange={formik.handleChange}
-                />
-                <TextField
-                fullWidth
-                id="lastName"
-                name="lastName"
-                label="Last Name"
-                value={formik.values.lastName}
-                onChange={formik.handleChange}
-                />
-            </div>
+          {/* FORM FIELDS */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                fullWidth label="First Name" name="firstName"
+                value={formik.values.firstName} onChange={formik.handleChange}
+              />
+              <TextField
+                fullWidth label="Last Name" name="lastName"
+                value={formik.values.lastName} onChange={formik.handleChange}
+              />
+            </Box>
             
-            {/* 3. Thêm TextField cho BIO */}
             <TextField
-                fullWidth
-                id="bio"
-                name="bio"
-                label="Bio"
-                multiline
-                rows={3} // Cho phép nhập nhiều dòng
-                value={formik.values.bio}
-                onChange={formik.handleChange}
-                placeholder="Write something about yourself..."
+              fullWidth multiline rows={3} label="Bio" name="bio"
+              placeholder="Write something about yourself..."
+              value={formik.values.bio} onChange={formik.handleChange}
             />
 
-            <FormControl>
-                <FormLabel id="gender-group-label">Gender</FormLabel>
-                <RadioGroup
-                    row
-                    aria-labelledby="gender-group-label"
-                    name="gender"
-                    value={formik.values.gender}
-                    onChange={formik.handleChange}
-                >
-                    <FormControlLabel value="male" control={<Radio />} label="Male" />
-                    <FormControlLabel value="female" control={<Radio />} label="Female" />
-                    <FormControlLabel value="other" control={<Radio />} label="Other" />
-                </RadioGroup>
+            <FormControl component="fieldset">
+              <FormLabel component="legend" sx={{ fontSize: '0.85rem', mb: 0.5 }}>Gender</FormLabel>
+              <RadioGroup
+                row name="gender"
+                value={formik.values.gender} onChange={formik.handleChange}
+              >
+                <FormControlLabel value="male" control={<Radio size="small" />} label={<Typography variant="body2">Male</Typography>} />
+                <FormControlLabel value="female" control={<Radio size="small" />} label={<Typography variant="body2">Female</Typography>} />
+                <FormControlLabel value="other" control={<Radio size="small" />} label={<Typography variant="body2">Other</Typography>} />
+              </RadioGroup>
             </FormControl>
-          </div>
+          </Box>
 
-        <Button
-            type='submit'
-            variant="contained"
-            fullWidth
-            sx={{ mt: 4, bgcolor: '#912f56', '&:hover': { bgcolor: '#7a2245' }, py: 1.5, borderRadius: '20px' }}
+          {/* SUBMIT BUTTON */}
+          <Button
+            type='submit' variant="contained" fullWidth
+            sx={{ 
+              mt: 4, bgcolor: '#912f56', borderRadius: '20px', py: 1.2, fontWeight: 600,
+              '&:hover': { bgcolor: '#7a2245' } 
+            }}
             disabled={loading}
           >
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
           </Button>
 
-        <Backdrop
-            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1, position: 'absolute', borderRadius: '12px' }}
+          {/* LOADING OVERLAY */}
+          <Backdrop
+            sx={{ color: '#fff', zIndex: 10, position: 'absolute', borderRadius: '12px' }}
             open={loading}
           >
             <CircularProgress color="inherit" />
           </Backdrop>
-      </Box>
+        </Box>
       </Fade>
     </Modal>
   );

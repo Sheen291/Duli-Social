@@ -30,17 +30,28 @@ export const createShortVideoAction = (reqData) => async(dispatch) => {
     }
 };
 
-export const getAllShortVideoAction = (page = 0) => async(dispatch) => {
-    dispatch({type: GET_ALL_SHORT_VIDEO_REQUEST});
+export const getAllShortVideoAction = (reqData) => async (dispatch) => {
+    dispatch({ type: GET_ALL_SHORT_VIDEO_REQUEST });
     try {
-        const {data} = await axios.get(`${API_BASE_URL}/api/shortvideos?page=${page}&size=5`, getConfig());
+        const { page, sessionId } = reqData;
+
+        const { data } = await axios.get(`${API_BASE_URL}/api/shortvideos/feed?page=${page}&sessionId=${sessionId}`, getConfig());
         
+        console.log("get reels feed success", data);
+
+        const isLastPage = data.length < 5;
+
         dispatch({
-            type: GET_ALL_SHORT_VIDEO_SUCCESS, 
-            payload: { content: data.content, page: page, last: data.last }
+            type: GET_ALL_SHORT_VIDEO_SUCCESS,
+            payload: {
+                content: data,
+                page: page,
+                last: isLastPage
+            }
         });
     } catch (error) {
-        dispatch({type: GET_ALL_SHORT_VIDEO_FAILURE, payload: error});
+        console.log("get reels error", error);
+        dispatch({ type: GET_ALL_SHORT_VIDEO_FAILURE, payload: error });
     }
 };
 
